@@ -1,0 +1,46 @@
+// pest provides a solution using the special rule WHITESPACE. If defined, it
+// will be implicitly run, as many times as possible, at every tilde ~ and
+// between every repetition (for example, * and +). We mark the WHITESPACE rule
+// silent with a leading low line (underscore) _{ ... }.
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+
+alpha = _{ "_" | ASCII_ALPHA }
+digit = _{ ASCII_DIGIT }
+identifier_start    = _{ alpha }
+identifier_continue = _{ alpha | digit }
+
+kw_if    = @{ "if"    ~ !identifier_continue }
+kw_else  = @{ "else"  ~ !identifier_continue }
+kw_Bool  = @{ "Bool"  ~ !identifier_continue }
+kw_fn    = @{ "fn"    ~ !identifier_continue }
+kw_lin   = @{ "lin"   ~ !identifier_continue }
+kw_un    = @{ "un"    ~ !identifier_continue }
+kw_true  = @{ "true"  ~ !identifier_continue }
+kw_false = @{ "false" ~ !identifier_continue }
+reserved = @{ kw_if | kw_else | kw_Bool | kw_fn | kw_lin | kw_un |
+	kw_true | kw_false }
+
+// Rules that are whitespace-sensitive need to be marked atomic with a leading
+// at sign @{ ... }. In atomic rules, automatic whitespace handling is
+// disabled, and interior rules are silent.
+variable = @{!reserved ~ identifier_start ~ identifier_continue*}
+
+boolean = { kw_true | kw_false }
+
+conditional = { kw_if ~ term ~ "{" ~ term ~ "}" ~ kw_else ~ "{" ~ term ~ "}" }
+
+abstraction = { "|" ~ variable ~ "|" ~ term }
+
+literal = { boolean }
+
+pretype = { kw_Bool | ( kw_fn ~ "(" ~ pretype ~ ")" ~ "->" ~ pretype) }
+
+qualifier = { kw_un | kw_lin }
+
+typing = { qualifier ~ pretype }
+
+term = { literal | conditional | variable }
+
+// SOI and EOI are two special rules that match, respectively, the start of
+// input and the end of input.
+program = { SOI ~ term ~ EOI }
