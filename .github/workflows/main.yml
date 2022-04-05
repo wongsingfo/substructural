@@ -29,13 +29,11 @@ jobs:
           wasm-pack build --target web
           mv pkg public/
           cp index.html public/
-          pwd
-          ls . public public/pkg
+          rm public/pkg/.gitignore
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.ref == 'refs/heads/master' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
-          keep_files: true
 
