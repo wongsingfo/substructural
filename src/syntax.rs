@@ -175,6 +175,7 @@ fn parse_pretype(pair: Pair<Rule>) -> Result<Pretype, Error> {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 

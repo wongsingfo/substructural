@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use pest::error::Error as PestError;
 use pest::RuleType;
 
@@ -6,6 +7,18 @@ pub enum Error {
     PestError { message: String },
     ParseError { message: String, source: String },
     InternalError,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            Error::PestError { message } => write!(f, "Pest error: {}", message),
+            Error::ParseError { message, source } => {
+                write!(f, "Parse error: {}\n{}", message, source)
+            }
+            Error::InternalError => write!(f, "Internal error"),
+        }
+    }
 }
 
 impl<R: RuleType> From<PestError<R>> for Error {
