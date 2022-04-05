@@ -1,5 +1,7 @@
 # Substructural
 
+![Build](https://github.com/wongsingfo/substructural/workflows/release/badge.svg)
+
 ## Build Commands
 
 Build:
