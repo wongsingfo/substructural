@@ -1,0 +1,16 @@
+{
+  "name": "substructural",
+  "collaborators": [
+    "Chengke <chengke@pku.edu.cn>",
+    "Renze <crz@pku.edu.cn>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "substructural_bg.wasm",
+    "substructural.js",
+    "substructural.d.ts"
+  ],
+  "module": "substructural.js",
+  "types": "substructural.d.ts",
+  "sideEffects": false
+}
