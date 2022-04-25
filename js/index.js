@@ -22,7 +22,7 @@ function debounce(func, wait, immediate) {
 function Substructural() {
 	let lib = window.substructural;
 
-	let input_code = '( p ( |x: fn( fn(Bool) -> Bool ) -> lin Bool | y ) ) (q) (if a {b} else {c})';
+	let input_code = '|x: $($(bool) -> ($bool)) -> int| y (z)';
 
 	function init() {
 		lib.init().then(setTimeout(() => {

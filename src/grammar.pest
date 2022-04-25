@@ -1,4 +1,6 @@
-// pest provides a solution using the special rule WHITESPACE. If defined, it
+// Checkout https://pest.rs/book/grammars/syntax.html#cheat-sheet for the cheat sheet
+
+// Pest provides a solution using the special rule WHITESPACE. If defined, it
 // will be implicitly run, as many times as possible, at every tilde ~ and
 // between every repetition (for example, * and +). We mark the WHITESPACE rule
 // silent with a leading low line (underscore) _{ ... }.
@@ -10,37 +12,57 @@ digit = _{ ASCII_DIGIT }
 identifier_start    = _{ alpha }
 identifier_continue = _{ alpha | digit }
 
-// Term
+left_bracket  = _{ "(" }
+right_bracket = _{ ")" }
+left_curly    = _{ "{" }
+right_curly   = _{ "}" }
+semicolon     = _{ ":" }
+arrow         = _{ "->" }
+dollar        = _{ "$" }
+vertical_bar  = _{ "|" }
 
-variable = @{ identifier_start ~ identifier_continue* }
-
-boolean = @{ ("true" | "false") ~ !identifier_continue }
-
-kw_if = @{ "if" ~ !identifier_continue }
-conditional = { kw_if ~ term ~ "{" ~ term ~ "}" ~ "else" ~ "{" ~ term ~ "}" }
-
-abstraction = { "|" ~ variable ~ (":" ~ typing)? ~ "|" ~ term }
-
-application = { "(" ~ term ~ ")" }
-
-literal = { boolean }
-
-bracket = { "(" ~ term ~ ")" }
-
-term = _{ ( abstraction | literal | conditional | variable | bracket ) ~ application* }
-
-// Typing
-
-kw_Bool = @{ "Bool" ~ !identifier_continue }
-fntype = { "(" ~ typing ~ ")" ~ "->" ~ typing }
-pretype = { kw_Bool | ( "fn" ~ fntype ) }
-
-kw_un = @{ "un" ~ !identifier_continue }
-kw_lin = @{ "lin" ~ !identifier_continue }
-qualifier = { kw_un | kw_lin }
-
-typing = { qualifier? ~ pretype }
+// keywords
+kw_if         = @{ "if" ~ !identifier_continue }
+kw_else       = _{ "else" ~ !identifier_continue }
+kw_bool       = @{ "bool" ~ !identifier_continue }
+kw_int        = @{ "int" ~ !identifier_continue }
+kw_true       = @{ "true" ~ !identifier_continue }
+kw_false      = @{ "false" ~ !identifier_continue }
 
 // SOI and EOI are two special rules that match, respectively, the start of
 // inputand the end of input.
 program = _{ SOI ~ term ~ EOI }
+
+// ============================= Term ============================= 
+
+term = _{ ( abstraction | literal | conditional | variable | bracket ) ~ application* }
+
+// Pest has two kinds of atomic rules: atomic (@) and compound atomic ($). Both
+// kinds of atomic rule prevent implicit whitespace. The difference between the
+// two is how they produce tokens for inner rules. In an atomic rule, interior
+// matching rules are silent. By contrast, compound atomic rules produce inner
+// tokens as normal.
+
+variable = @{ identifier_start ~ identifier_continue* }
+
+number = @{ (digit)+ ~!identifier_continue }
+
+boolean = @{ (kw_true | kw_false) ~ !identifier_continue }
+
+conditional = { kw_if ~ term ~ left_curly ~ term ~ right_curly ~ kw_else ~ left_curly ~ term ~ right_curly }
+
+abstraction = { vertical_bar ~ variable ~ (semicolon ~ typing)? ~ vertical_bar ~ term }
+
+application = { left_bracket ~ term ~ right_bracket }
+
+literal = { boolean | number }
+
+bracket = { left_bracket ~ term ~ right_bracket }
+
+// ============================= Typing ============================= 
+
+qualifier = { dollar }
+
+typing = { typing0 ~ (arrow ~ typing0)* }
+
+typing0 = { qualifier? ~ (kw_int | kw_bool | (left_bracket ~ typing ~ right_bracket)) }

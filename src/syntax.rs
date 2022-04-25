@@ -20,6 +20,7 @@ impl<'a> fmt::Debug for TermCtx<'a> {
 pub enum Term<'a> {
     Variable(String),
     Boolean(bool),
+    Integer(i64),
     Abstraction(String, Option<Box<Type>>, Box<TermCtx<'a>>),
     Application(Box<TermCtx<'a>>, Box<TermCtx<'a>>),
     Conditional(Box<TermCtx<'a>>, Box<TermCtx<'a>>, Box<TermCtx<'a>>),
@@ -28,7 +29,7 @@ pub enum Term<'a> {
 #[derive(Debug)]
 pub struct Type(Qualifier, Pretype);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Qualifier {
     Un,
     Lin,
@@ -37,6 +38,7 @@ pub enum Qualifier {
 #[derive(Debug)]
 pub enum Pretype {
     Boolean,
+    Integer,
     Function(Box<Type>, Box<Type>),
 }
 
@@ -68,6 +70,10 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                 Rule::boolean => {
                     let value = string.parse::<bool>().unwrap();
                     Ok(TermCtx(source, Term::Boolean(value)))
+                }
+                Rule::number => {
+                    let value = string.parse::<i64>().unwrap();
+                    Ok(TermCtx(source, Term::Integer(value)))
                 }
                 _ => Err(Error::ParseError {
                     source: source.as_str().to_string(),
@@ -131,48 +137,64 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
 }
 
 fn parse_typing(pair: Pair<Rule>) -> Result<Type, Error> {
-    let mut inner = pair.into_inner();
-    if let Some(Rule::qualifier) = inner.peek().map(|p| p.as_rule()) {
-        let qualifier = parse_qualifier(inner.next().unwrap())?;
-        let pretype = parse_pretype(inner.next().unwrap())?;
-        Ok(Type(qualifier, pretype))
+    let inner = pair.into_inner();
+    let t0 = inner.map(parse_typing0);
+    t0.rev()
+        .reduce(|rhs, lhs| match (rhs, lhs) {
+            (Ok(rhs), Ok(lhs)) => Ok(Type(
+                Qualifier::Un,
+                Pretype::Function(Box::new(lhs), Box::new(rhs)),
+            )),
+            (Err(e), _) => Err(e),
+            (_, Err(e)) => Err(e),
+        })
+        .unwrap()
+}
+
+fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
+    if pair.as_rule() != Rule::typing0 {
+        Err(Error::ParseError {
+            message: format!("Unexpected rule: {:?}", pair.as_rule()),
+            source: pair.as_str().to_string(),
+        })
     } else {
-        // By default, the type is unrestricted.
-        let qualifier = Qualifier::Un;
-        let pretype = parse_pretype(inner.next().unwrap())?;
-        Ok(Type(qualifier, pretype))
-    }
-}
-
-fn parse_qualifier(pair: Pair<Rule>) -> Result<Qualifier, Error> {
-    assert!(pair.as_rule() == Rule::qualifier);
-    let pair = pair.into_inner().next().unwrap();
-    match pair.as_rule() {
-        Rule::kw_un => Ok(Qualifier::Un),
-        Rule::kw_lin => Ok(Qualifier::Lin),
-        _ => Err(Error::ParseError {
-            message: format!("Unexpected rule: {:?}", pair.as_rule()),
-            source: pair.as_str().to_string(),
-        }),
-    }
-}
-
-fn parse_pretype(pair: Pair<Rule>) -> Result<Pretype, Error> {
-    assert!(pair.as_rule() == Rule::pretype);
-    let pair = pair.into_inner().next().unwrap();
-    match pair.as_rule() {
-        Rule::kw_Bool => Ok(Pretype::Boolean),
-        Rule::fntype => {
-            let mut inner = pair.into_inner();
-            let pretype1 = parse_typing(inner.next().unwrap())?;
-            let pretype2 = parse_typing(inner.next().unwrap())?;
-            Ok(Pretype::Function(Box::new(pretype1), Box::new(pretype2)))
+        let mut inner = pair.into_inner();
+        let qualifier = if inner.peek().map(|p| p.as_rule()) == Some(Rule::qualifier) {
+            let qualifier = inner.next().unwrap();
+            Some(parse_qualifier(qualifier))
+        } else {
+            None
+        };
+        let pair = inner.next().unwrap();
+        let source = pair.as_str().to_string();
+        let Type(q, pretype) = match pair.as_rule() {
+            Rule::kw_int => Type(Qualifier::Un, Pretype::Integer),
+            Rule::kw_bool => Type(Qualifier::Un, Pretype::Boolean),
+            Rule::typing => parse_typing(pair)?,
+            _ => {
+                return Err(Error::ParseError {
+                    message: format!("Unexpected rule: {:?}", pair.as_rule()),
+                    source: pair.as_str().to_string(),
+                })
+            }
+        };
+        if let Some(qualifier) = qualifier {
+            if q != Qualifier::Un {
+                return Err(Error::ParseError {
+                    message: format!("Incompatible qualifiers {:?} and {:?}", q, qualifier),
+                    source,
+                });
+            }
+            Ok(Type(qualifier, pretype))
+        } else {
+            Ok(Type(q, pretype))
         }
-        _ => Err(Error::ParseError {
-            message: format!("Unexpected rule: {:?}", pair.as_rule()),
-            source: pair.as_str().to_string(),
-        }),
     }
+}
+
+fn parse_qualifier(pair: Pair<Rule>) -> Qualifier {
+    // We only have one single qualifier here and we directly return it.
+    return Qualifier::Lin;
 }
 
 #[cfg(test)]
@@ -187,9 +209,13 @@ mod test {
         assert!(IdentParser::parse(Rule::program, input).is_ok());
         let input = "__123";
         assert!(IdentParser::parse(Rule::program, input).is_ok());
-        let input = "1";
+        let input = "0123";
+        assert!(IdentParser::parse(Rule::program, input).is_ok());
+        let input = "true0";
+        assert!(IdentParser::parse(Rule::program, input).is_ok());
+        let input = "123a";
         assert!(IdentParser::parse(Rule::program, input).is_err());
-        let input = "1a";
+        let input = "0a";
         assert!(IdentParser::parse(Rule::program, input).is_err());
     }
 
@@ -199,16 +225,6 @@ mod test {
         assert!(IdentParser::parse(Rule::program, input).is_ok());
         let input = "ifx{ a}else {y}";
         assert!(IdentParser::parse(Rule::program, input).is_err());
-    }
-
-    #[test]
-    fn test_pretype() {
-        let input = "Bool";
-        assert!(IdentParser::parse(Rule::pretype, input).is_ok());
-        let input = "fn(un Bool) -> un Bool";
-        assert!(IdentParser::parse(Rule::pretype, input).is_ok());
-        let input = "fn(un Bool)->un fn(un Bool)->un Bool";
-        assert!(IdentParser::parse(Rule::pretype, input).is_ok());
     }
 
     #[test]
@@ -229,7 +245,7 @@ mod test {
 
     #[test]
     fn test_parse_prog03() {
-        let input = "|x: lin Bool| y";
+        let input = "|x: $(bool) -> $bool| y";
         let output = IdentParser::parse(Rule::program, input).unwrap();
         println!("{:#?}", output);
         println!("{:#?}", parse_program(input).unwrap());
@@ -237,10 +253,18 @@ mod test {
 
     #[test]
     fn test_parse_prog04() {
-        let input = "|x: lin fn(un Bool) -> fn (Bool) -> Bool | y";
+        let input = "|x: $($(bool) -> ($bool)) -> int| y";
         let output = IdentParser::parse(Rule::program, input).unwrap();
         println!("{:#?}", output);
         println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_parse_prog05() {
+        let input = "|x: $($bool)| y";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        assert!(parse_program(input).is_err());
     }
 
     #[test]
