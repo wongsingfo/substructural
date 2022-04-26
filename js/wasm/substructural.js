@@ -130,6 +130,34 @@ export function syntax_tree(program, cb) {
     }
 }
 
+/**
+* @param {string} program
+* @param {Function} cb
+*/
+export function typing(program, cb) {
+    try {
+        var ptr0 = passStringToWasm0(program, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.typing(ptr0, len0, addBorrowedObject(cb));
+    } finally {
+        heap[stack_pointer++] = undefined;
+    }
+}
+
+/**
+* @param {string} program
+* @param {Function} cb
+*/
+export function one_step_eval(program, cb) {
+    try {
+        var ptr0 = passStringToWasm0(program, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        var len0 = WASM_VECTOR_LEN;
+        wasm.one_step_eval(ptr0, len0, addBorrowedObject(cb));
+    } finally {
+        heap[stack_pointer++] = undefined;
+    }
+}
+
 function handleError(f, args) {
     try {
         return f.apply(this, args);
