@@ -31,8 +31,8 @@ pub struct Type(Qualifier, Pretype);
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Qualifier {
-    Un,
-    Lin,
+    Nop,
+    Linear,
 }
 
 #[derive(Debug)]
@@ -142,7 +142,7 @@ fn parse_typing(pair: Pair<Rule>) -> Result<Type, Error> {
     t0.rev()
         .reduce(|rhs, lhs| match (rhs, lhs) {
             (Ok(rhs), Ok(lhs)) => Ok(Type(
-                Qualifier::Un,
+                Qualifier::Nop,
                 Pretype::Function(Box::new(lhs), Box::new(rhs)),
             )),
             (Err(e), _) => Err(e),
@@ -168,8 +168,8 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
         let pair = inner.next().unwrap();
         let source = pair.as_str().to_string();
         let Type(q, pretype) = match pair.as_rule() {
-            Rule::kw_int => Type(Qualifier::Un, Pretype::Integer),
-            Rule::kw_bool => Type(Qualifier::Un, Pretype::Boolean),
+            Rule::kw_int => Type(Qualifier::Nop, Pretype::Integer),
+            Rule::kw_bool => Type(Qualifier::Nop, Pretype::Boolean),
             Rule::typing => parse_typing(pair)?,
             _ => {
                 return Err(Error::ParseError {
@@ -179,7 +179,7 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
             }
         };
         if let Some(qualifier) = qualifier {
-            if q != Qualifier::Un {
+            if q != Qualifier::Nop {
                 return Err(Error::ParseError {
                     message: format!("Incompatible qualifiers {:?} and {:?}", q, qualifier),
                     source,
@@ -192,9 +192,9 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
     }
 }
 
-fn parse_qualifier(pair: Pair<Rule>) -> Qualifier {
+fn parse_qualifier(_pair: Pair<Rule>) -> Qualifier {
     // We only have one single qualifier here and we directly return it.
-    return Qualifier::Lin;
+    return Qualifier::Linear;
 }
 
 #[cfg(test)]
