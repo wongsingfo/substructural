@@ -8,7 +8,7 @@ use std::fmt;
 #[grammar = "grammar.pest"]
 struct IdentParser;
 
-pub struct TermCtx<'a>(Span<'a>, Term<'a>);
+pub struct TermCtx<'a>(pub Span<'a>, pub Term<'a>);
 
 impl<'a> fmt::Debug for TermCtx<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -19,28 +19,41 @@ impl<'a> fmt::Debug for TermCtx<'a> {
 #[derive(Debug)]
 pub enum Term<'a> {
     Variable(String),
-    Boolean(bool),
-    Integer(i64),
-    Abstraction(String, Option<Box<Type>>, Box<TermCtx<'a>>),
+    Boolean(Qualifier, bool),
+    Integer(Qualifier, i64),
+    Abstraction(Qualifier, String, Option<Box<Type>>, Box<TermCtx<'a>>),
     Application(Box<TermCtx<'a>>, Box<TermCtx<'a>>),
     Conditional(Box<TermCtx<'a>>, Box<TermCtx<'a>>, Box<TermCtx<'a>>),
 }
 
-#[derive(Debug)]
-pub struct Type(Qualifier, Pretype);
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Type(pub Qualifier, pub Pretype);
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Qualifier {
     Nop,
     Linear,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Pretype {
     Boolean,
     Integer,
     Function(Box<Type>, Box<Type>),
 }
+
+impl PartialEq for Pretype {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Pretype::Boolean, Pretype::Boolean) => true,
+            (Pretype::Integer, Pretype::Integer) => true,
+            (Pretype::Function(a1, b1), Pretype::Function(a2, b2)) => a1 == a2 && b1 == b2,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Pretype {}
 
 pub fn parse_program(input: &str) -> Result<TermCtx, Error> {
     let pairs: Pairs<Rule> = IdentParser::parse(Rule::program, input)?;
@@ -69,11 +82,13 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
             match pair.into_inner().next().unwrap().as_rule() {
                 Rule::boolean => {
                     let value = string.parse::<bool>().unwrap();
-                    Ok(TermCtx(source, Term::Boolean(value)))
+                    // TODO(wck)
+                    Ok(TermCtx(source, Term::Boolean(Qualifier::Nop, value)))
                 }
                 Rule::number => {
                     let value = string.parse::<i64>().unwrap();
-                    Ok(TermCtx(source, Term::Integer(value)))
+                    // TODO(wck)
+                    Ok(TermCtx(source, Term::Integer(Qualifier::Nop, value)))
                 }
                 _ => Err(Error::ParseError {
                     source: source.as_str().to_string(),
@@ -115,6 +130,8 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                 Ok(TermCtx(
                     source,
                     Term::Abstraction(
+                        // TODO(wck)
+                        Qualifier::Nop,
                         variable.to_string(),
                         Some(Box::new(typing)),
                         Box::new(term1),
@@ -124,7 +141,8 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                 let (term1, _) = parse_pairs(inner)?;
                 Ok(TermCtx(
                     source,
-                    Term::Abstraction(variable.to_string(), None, Box::new(term1)),
+                    // TODO(wck)
+                    Term::Abstraction(Qualifier::Nop, variable.to_string(), None, Box::new(term1)),
                 ))
             }
         }
