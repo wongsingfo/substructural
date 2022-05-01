@@ -78,17 +78,22 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
     let term1 = match pair.as_rule() {
         Rule::literal => {
             let source = pair.as_span();
-            let string = pair.as_str();
-            match pair.into_inner().next().unwrap().as_rule() {
+            let mut inner = pair.into_inner();
+            let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
+                parse_qualifier(inner.next().unwrap())
+            } else {
+                Qualifier::Nop
+            };
+            let literal = inner.next().unwrap();
+            let string = literal.as_str();
+            match literal.as_rule() {
                 Rule::boolean => {
                     let value = string.parse::<bool>().unwrap();
-                    // TODO(wck)
-                    Ok(TermCtx(source, Term::Boolean(Qualifier::Nop, value)))
+                    Ok(TermCtx(source, Term::Boolean(qualifier, value)))
                 }
                 Rule::number => {
                     let value = string.parse::<i64>().unwrap();
-                    // TODO(wck)
-                    Ok(TermCtx(source, Term::Integer(Qualifier::Nop, value)))
+                    Ok(TermCtx(source, Term::Integer(qualifier, value)))
                 }
                 _ => Err(Error::ParseError {
                     source: source.as_str().to_string(),
@@ -123,6 +128,11 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         Rule::abstraction => {
             let source = pair.as_span();
             let mut inner = pair.into_inner();
+            let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
+                parse_qualifier(inner.next().unwrap())
+            } else {
+                Qualifier::Nop
+            };
             let variable = inner.next().unwrap().as_str();
             if let Some(Rule::typing) = inner.peek().map(|p| p.as_rule()) {
                 let typing = parse_typing(inner.next().unwrap())?;
@@ -130,8 +140,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                 Ok(TermCtx(
                     source,
                     Term::Abstraction(
-                        // TODO(wck)
-                        Qualifier::Nop,
+                        qualifier,
                         variable.to_string(),
                         Some(Box::new(typing)),
                         Box::new(term1),
@@ -141,8 +150,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                 let (term1, _) = parse_pairs(inner)?;
                 Ok(TermCtx(
                     source,
-                    // TODO(wck)
-                    Term::Abstraction(Qualifier::Nop, variable.to_string(), None, Box::new(term1)),
+                    Term::Abstraction(qualifier, variable.to_string(), None, Box::new(term1)),
                 ))
             }
         }
@@ -288,6 +296,24 @@ mod test {
     #[test]
     fn test_parse_literal() {
         let input = "true";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_linear_values() {
+        let input = "$123";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+
+        let input = "$    false";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+
+        let input = "$ |x| x";
         let output = IdentParser::parse(Rule::program, input).unwrap();
         println!("{:#?}", output);
         println!("{:#?}", parse_program(input).unwrap());

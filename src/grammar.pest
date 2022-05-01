@@ -51,11 +51,11 @@ boolean = @{ (kw_true | kw_false) ~ !identifier_continue }
 
 conditional = { kw_if ~ term ~ left_curly ~ term ~ right_curly ~ kw_else ~ left_curly ~ term ~ right_curly }
 
-abstraction = { vertical_bar ~ variable ~ (semicolon ~ typing)? ~ vertical_bar ~ term }
+abstraction = { qualifier? ~ vertical_bar ~ variable ~ (semicolon ~ typing)? ~ vertical_bar ~ term }
 
 application = { left_bracket ~ term ~ right_bracket }
 
-literal = { boolean | number }
+literal = { qualifier? ~ (boolean | number) }
 
 bracket = { left_bracket ~ term ~ right_bracket }
 
