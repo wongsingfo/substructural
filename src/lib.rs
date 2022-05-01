@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod error;
 pub mod syntax;
+pub mod formatter;
 pub mod typing;
 pub mod eval;
 
