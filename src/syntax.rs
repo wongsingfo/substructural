@@ -8,6 +8,7 @@ use std::fmt;
 #[grammar = "grammar.pest"]
 struct IdentParser;
 
+#[derive(Clone)]
 pub struct TermCtx<'a>(pub Span<'a>, pub Term<'a>);
 
 impl<'a> fmt::Debug for TermCtx<'a> {
@@ -16,7 +17,7 @@ impl<'a> fmt::Debug for TermCtx<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Term<'a> {
     Variable(String),
     Boolean(Qualifier, bool),
@@ -42,6 +43,11 @@ pub enum Pretype {
     Function(Box<Type>, Box<Type>),
 }
 
+pub fn parse_program(input: &str) -> Result<TermCtx, Error> {
+    let pairs: Pairs<Rule> = IdentParser::parse(Rule::program, input)?;
+    Ok(parse_pairs(pairs)?.0)
+}
+
 impl PartialEq for Pretype {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -54,11 +60,6 @@ impl PartialEq for Pretype {
 }
 
 impl Eq for Pretype {}
-
-pub fn parse_program(input: &str) -> Result<TermCtx, Error> {
-    let pairs: Pairs<Rule> = IdentParser::parse(Rule::program, input)?;
-    Ok(parse_pairs(pairs)?.0)
-}
 
 fn parse_pairs(mut pairs: Pairs<Rule>) -> Result<(TermCtx, Pairs<Rule>), Error> {
     let pair1 = pairs.next().unwrap();

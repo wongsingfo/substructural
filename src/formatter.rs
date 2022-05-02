@@ -113,6 +113,8 @@ impl TermFormatter {
 
 #[cfg(test)]
 mod test {
+    use crate::syntax::parse_program;
+
     use super::*;
 
     #[test]
