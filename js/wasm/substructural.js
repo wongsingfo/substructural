@@ -190,15 +190,21 @@ function addBorrowedObject(obj) {
     return stack_pointer;
 }
 /**
+* Lint the given source code.
+*
+* # Arguments
+* * `source` - The source code to lint.
 * @param {string} program
-* @param {Function} cb
+* @param {Function} cb_ok
+* @param {Function} cb_err
 */
-export function syntax_tree(program, cb) {
+export function term_lint(program, cb_ok, cb_err) {
     try {
         var ptr0 = passStringToWasm0(program, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
-        wasm.syntax_tree(ptr0, len0, addBorrowedObject(cb));
+        wasm.term_lint(ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
     } finally {
+        heap[stack_pointer++] = undefined;
         heap[stack_pointer++] = undefined;
     }
 }
@@ -224,17 +230,17 @@ export function typing(program, cb) {
 * * `term_eval_json` - The program to evaluate. It can be the `TermEval`, the `TermCtx`, or the
 * source code in string form. The latter two are converted to `TermEval` with an empty store
 * before evaluation.
-* * `cb` - A callback function to receive the result. The first argument is the result. If error
-* occurs, the first argument is null and the second argument is the error message.
 * @param {string} program
-* @param {Function} cb
+* @param {Function} cb_ok
+* @param {Function} cb_err
 */
-export function one_step_eval(program, cb) {
+export function one_step_eval(program, cb_ok, cb_err) {
     try {
         var ptr0 = passStringToWasm0(program, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
-        wasm.one_step_eval(ptr0, len0, addBorrowedObject(cb));
+        wasm.one_step_eval(ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
     } finally {
+        heap[stack_pointer++] = undefined;
         heap[stack_pointer++] = undefined;
     }
 }
@@ -245,17 +251,17 @@ export function one_step_eval(program, cb) {
 * # Arguments
 * * `term_json` - The term to prettify. It can be the `TermCtx` or the source code in string form.
 * The latter is converted to `TermCtx` before prettifying.
-* * `cb` - A callback function to receive the result. The first argument is the result. If error
-* occurs, the first argument is null and the second argument is the error message.
 * @param {string} term_ctx
-* @param {Function} cb
+* @param {Function} cb_ok
+* @param {Function} cb_err
 */
-export function prettify(term_ctx, cb) {
+export function prettify(term_ctx, cb_ok, cb_err) {
     try {
         var ptr0 = passStringToWasm0(term_ctx, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
-        wasm.prettify(ptr0, len0, addBorrowedObject(cb));
+        wasm.prettify(ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
     } finally {
+        heap[stack_pointer++] = undefined;
         heap[stack_pointer++] = undefined;
     }
 }
@@ -317,10 +323,6 @@ async function init(input) {
     };
     imports.wbg.__wbg_call_94697a95cb7e239c = function() { return handleError(function (arg0, arg1, arg2) {
         var ret = getObject(arg0).call(getObject(arg1), getObject(arg2));
-        return addHeapObject(ret);
-    }, arguments) };
-    imports.wbg.__wbg_call_471669b9b42539e5 = function() { return handleError(function (arg0, arg1, arg2, arg3) {
-        var ret = getObject(arg0).call(getObject(arg1), getObject(arg2), getObject(arg3));
         return addHeapObject(ret);
     }, arguments) };
     imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {
