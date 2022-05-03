@@ -18,8 +18,10 @@
 
 	<script src="js/bootstrap.min.js"></script>
 	<script type="module">
-		import init, {greet, syntax_tree} from "./js/wasm/substructural.js";
-		window.substructural = {init, syntax_tree};
+		import init, * as api from "./js/wasm/substructural.js";
+		let substructural = Object.assign({}, api);
+		substructural.init = substructural.default;
+		window.substructural = substructural;
 	</script> <!-- Imported before index -->
 	<script src="js/index.js" defer></script> <!-- Imported before alpine -->
 	<script src="js/alpinejs-3.9.5.min.js" defer></script>

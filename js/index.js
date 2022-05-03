@@ -32,7 +32,7 @@ function Substructural() {
 
 	function onInputChanged() {
 		let {input_code} = this;
-		lib.syntax_tree(input_code, (result) => {
+		lib.prettify(input_code, (result, _err) => {
 			this.output_syntax = result;
 		});
 	}
