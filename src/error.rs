@@ -11,6 +11,7 @@ pub enum Error {
     PestError { message: String },
     ParseError { message: String, source: String },
     EvaluateError { message: String, source: String },
+    TypeError { message: String, source: String },
     InternalError,
 }
 
@@ -24,6 +25,9 @@ impl Display for Error {
             },
             Error::EvaluateError { message, source } => {
                 write!(f, "Evaluate error: {}\n{}", message, source)
+            },
+            Error::TypeError { message, source } => {
+                write!(f, "Type error: {}\n{}", message, source)
             },
             Error::InternalError => write!(f, "Internal error"),
         }

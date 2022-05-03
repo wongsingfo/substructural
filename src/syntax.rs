@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[grammar = "grammar.pest"]
 struct IdentParser;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Debug)]
 pub struct Context {
     pub start: usize,
     pub end: usize,
@@ -37,7 +37,7 @@ pub enum Term {
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Type(pub Qualifier, pub Pretype);
 
-#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize, Copy)]
 pub enum Qualifier {
     Nop,
     Linear,
