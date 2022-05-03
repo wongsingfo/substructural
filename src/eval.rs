@@ -1,31 +1,30 @@
-// TODO(wck)
 use crate::error::Error;
 use crate::syntax::{Qualifier, Term, TermCtx};
 
 #[derive(Debug, Clone)]
-struct Binding<'a> {
+struct Binding {
     name: String,
-    value: TermCtx<'a>,
+    value: TermCtx,
 }
 
 #[derive(Debug, Clone)]
-struct Store<'a> {
-    bindings: Vec<Binding<'a>>,
+struct Store {
+    bindings: Vec<Binding>,
 }
 
-impl<'a> Store<'a> {
-    fn new_empty() -> Store<'a> {
+impl Store {
+    fn new_empty() -> Store {
         Store {
             bindings: Vec::new(),
         }
     }
 
-    fn push(&mut self, name: String, value: TermCtx<'a>) {
+    fn push(&mut self, name: String, value: TermCtx) {
         assert!(get_qualifier(&value).is_some());
         self.bindings.push(Binding { name, value });
     }
 
-    fn lookup(&mut self, name: &str) -> Option<TermCtx<'a>> {
+    fn lookup(&mut self, name: &str) -> Option<TermCtx> {
         let index = self
             .bindings
             .iter()
@@ -46,9 +45,9 @@ impl<'a> Store<'a> {
 }
 
 #[derive(Debug)]
-struct TermEval<'a> {
-    store: Store<'a>,
-    term: TermCtx<'a>,
+struct TermEval {
+    store: Store,
+    term: TermCtx,
 }
 
 fn is_value(term: &TermCtx) -> bool {
@@ -73,14 +72,14 @@ fn get_qualifier(term: &TermCtx) -> Option<Qualifier> {
     qualifier.map(|q| q.clone())
 }
 
-fn eval_value<'a>(store: &mut Store<'a>, term_ctx: &TermCtx<'a>) -> Result<TermCtx<'a>, Error> {
+fn eval_value(store: &mut Store, term_ctx: &TermCtx) -> Result<TermCtx, Error> {
     let TermCtx(ctx, term) = term_ctx;
     match term {
         Term::Variable(name) => match store.lookup(name) {
             Some(value) => Ok(value),
             None => Err(Error::EvaluateError {
                 message: format!("Variable {} not found", name),
-                source: ctx.as_str().to_owned(),
+                source: ctx.to_string(),
             }),
         },
         Term::Boolean(_, _) => Ok(term_ctx.to_owned()),
@@ -88,12 +87,12 @@ fn eval_value<'a>(store: &mut Store<'a>, term_ctx: &TermCtx<'a>) -> Result<TermC
         Term::Abstraction(_, _, _, _) => Ok(term_ctx.to_owned()),
         _ => Err(Error::EvaluateError {
             message: format!("Value expected, but found {:?}", term_ctx),
-            source: ctx.as_str().to_owned(),
+            source: ctx.to_string(),
         }),
     }
 }
 
-fn one_step_eval<'a>(term_eval: TermEval<'a>) -> Result<TermEval<'a>, Error> {
+fn one_step_eval(term_eval: TermEval) -> Result<TermEval, Error> {
     let TermEval {
         mut store,
         term: TermCtx(ctx, term),
@@ -121,7 +120,7 @@ fn one_step_eval<'a>(term_eval: TermEval<'a>) -> Result<TermEval<'a>, Error> {
                     _ => {
                         return Err(Error::EvaluateError {
                             message: "Conditional term must be boolean".to_owned(),
-                            source: ctx.as_str().to_owned(),
+                            source: ctx.to_string(),
                         })
                     }
                 };
@@ -159,7 +158,7 @@ fn one_step_eval<'a>(term_eval: TermEval<'a>) -> Result<TermEval<'a>, Error> {
                 } else {
                     return Err(Error::EvaluateError {
                         message: "Expected abstraction".to_owned(),
-                        source: ctx.as_str().to_owned(),
+                        source: ctx.to_string(),
                     });
                 }
             }

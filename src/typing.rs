@@ -78,7 +78,7 @@ fn type_check_aux(
         }
         _ => return None,
     };
-    type_map.insert((span.start(), span.end()), type_.clone());
+    type_map.insert((span.start, span.end), type_.clone());
     Some(type_)
 }
 

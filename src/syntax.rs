@@ -9,22 +9,28 @@ use std::fmt;
 struct IdentParser;
 
 #[derive(Clone)]
-pub struct TermCtx<'a>(pub Span<'a>, pub Term<'a>);
+pub struct Context {
+    pub start: usize,
+    pub end: usize,
+}
 
-impl<'a> fmt::Debug for TermCtx<'a> {
+#[derive(Clone)]
+pub struct TermCtx(pub Context, pub Term);
+
+impl fmt::Debug for TermCtx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.1.fmt(f)
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Term<'a> {
+pub enum Term {
     Variable(String),
     Boolean(Qualifier, bool),
     Integer(Qualifier, i64),
-    Abstraction(Qualifier, String, Option<Box<Type>>, Box<TermCtx<'a>>),
-    Application(Box<TermCtx<'a>>, Box<TermCtx<'a>>),
-    Conditional(Box<TermCtx<'a>>, Box<TermCtx<'a>>, Box<TermCtx<'a>>),
+    Abstraction(Qualifier, String, Option<Box<Type>>, Box<TermCtx>),
+    Application(Box<TermCtx>, Box<TermCtx>),
+    Conditional(Box<TermCtx>, Box<TermCtx>, Box<TermCtx>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -46,6 +52,27 @@ pub enum Pretype {
 pub fn parse_program(input: &str) -> Result<TermCtx, Error> {
     let pairs: Pairs<Rule> = IdentParser::parse(Rule::program, input)?;
     Ok(parse_pairs(pairs)?.0)
+}
+
+impl Context {
+    pub fn to_string(&self) -> String {
+        let mut s = String::new();
+        s.push_str("[");
+        s.push_str(&self.start.to_string());
+        s.push_str(":");
+        s.push_str(&self.end.to_string());
+        s.push_str("]");
+        s
+    }
+}
+
+impl<'a> From<Span<'a>> for Context {
+    fn from(span: Span<'a>) -> Self {
+        Context {
+            start: span.start(),
+            end: span.end(),
+        }
+    }
 }
 
 impl PartialEq for Pretype {
@@ -90,11 +117,11 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
             match literal.as_rule() {
                 Rule::boolean => {
                     let value = string.parse::<bool>().unwrap();
-                    Ok(TermCtx(source, Term::Boolean(qualifier, value)))
+                    Ok(TermCtx(source.into(), Term::Boolean(qualifier, value)))
                 }
                 Rule::number => {
                     let value = string.parse::<i64>().unwrap();
-                    Ok(TermCtx(source, Term::Integer(qualifier, value)))
+                    Ok(TermCtx(source.into(), Term::Integer(qualifier, value)))
                 }
                 _ => Err(Error::ParseError {
                     source: source.as_str().to_string(),
@@ -105,19 +132,19 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         Rule::variable => {
             let source = pair.as_span();
             let name = pair.as_str();
-            Ok(TermCtx(source, Term::Variable(name.to_string())))
+            Ok(TermCtx(source.into(), Term::Variable(name.to_string())))
         }
         Rule::conditional => {
             let mut inner = pair.into_inner();
             let kw_if = inner.next().unwrap();
             let span1 = kw_if.as_span();
+            let span2 = inner.peek().unwrap().as_span();
             let (term1, inner) = parse_pairs(inner)?;
             let (term2, inner) = parse_pairs(inner)?;
             let (term3, _) = parse_pairs(inner)?;
-            let span2 = &term1.0;
             let source = span1.start_pos().span(&span2.end_pos());
             Ok(TermCtx(
-                source,
+                source.into(),
                 Term::Conditional(Box::new(term1), Box::new(term2), Box::new(term3)),
             ))
         }
@@ -139,7 +166,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                 let typing = parse_typing(inner.next().unwrap())?;
                 let (term1, _) = parse_pairs(inner)?;
                 Ok(TermCtx(
-                    source,
+                    source.into(),
                     Term::Abstraction(
                         qualifier,
                         variable.to_string(),
@@ -150,7 +177,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
             } else {
                 let (term1, _) = parse_pairs(inner)?;
                 Ok(TermCtx(
-                    source,
+                    source.into(),
                     Term::Abstraction(qualifier, variable.to_string(), None, Box::new(term1)),
                 ))
             }
