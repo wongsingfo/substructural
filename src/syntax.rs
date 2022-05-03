@@ -125,8 +125,9 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                     Ok(TermCtx(source.into(), Term::Integer(qualifier, value)))
                 }
                 _ => Err(Error::ParseError {
-                    source: source.as_str().to_string(),
                     message: "unexpected literal".to_string(),
+                    start: source.start(),
+                    end: source.end(),
                 }),
             }
         }
@@ -185,7 +186,8 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         }
         _ => Err(Error::ParseError {
             message: format!("Unexpected rule: {:?}", pair.as_rule()),
-            source: pair.as_str().to_string(),
+            start: pair.as_span().start(),
+            end: pair.as_span().end(),
         }),
     };
     term1
@@ -210,7 +212,8 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
     if pair.as_rule() != Rule::typing0 {
         Err(Error::ParseError {
             message: format!("Unexpected rule: {:?}", pair.as_rule()),
-            source: pair.as_str().to_string(),
+            start: pair.as_span().start(),
+            end: pair.as_span().end(),
         })
     } else {
         let mut inner = pair.into_inner();
@@ -221,7 +224,8 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
             None
         };
         let pair = inner.next().unwrap();
-        let source = pair.as_str().to_string();
+        let start = pair.as_span().start();
+        let end = pair.as_span().end();
         let Type(q, pretype) = match pair.as_rule() {
             Rule::kw_int => Type(Qualifier::Nop, Pretype::Integer),
             Rule::kw_bool => Type(Qualifier::Nop, Pretype::Boolean),
@@ -229,7 +233,8 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
             _ => {
                 return Err(Error::ParseError {
                     message: format!("Unexpected rule: {:?}", pair.as_rule()),
-                    source: pair.as_str().to_string(),
+                    start: pair.as_span().start(),
+                    end: pair.as_span().end(),
                 })
             }
         };
@@ -237,7 +242,8 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
             if q != Qualifier::Nop {
                 return Err(Error::ParseError {
                     message: format!("Incompatible qualifiers {:?} and {:?}", q, qualifier),
-                    source,
+                    start,
+                    end,
                 });
             }
             Ok(Type(qualifier, pretype))

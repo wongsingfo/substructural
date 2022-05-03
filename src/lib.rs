@@ -16,16 +16,26 @@ pub fn greet(name: &str) {
     alert(&format!("Hello, {}!", name));
 }
 
+/// Lint the given source code.
+///
+/// # Arguments
+/// * `source` - The source code to lint.
 #[wasm_bindgen]
-pub fn syntax_tree(program: &str, cb: &js_sys::Function) {
+pub fn term_lint(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Function) {
+    let this = JsValue::NULL;
     let tree = syntax::parse_program(program);
     let result = match tree {
-        Ok(tree) => format!("{:#?}", tree),
-        Err(error) => format!("{}", error),
+        Ok(tree) => tree,
+        Err(error) => {
+            let error = serde_json::to_string(&error).unwrap();
+            cb_err.call1(&this, &JsValue::from_str(&error)).unwrap();
+            return;
+        }
     };
+    let result = formatter::format_termctx(&result);
     let result = JsValue::from_str(&result);
     let this = JsValue::NULL;
-    let _ = cb.call1(&this, &result);
+    cb_ok.call1(&this, &result).unwrap();
 }
 
 #[wasm_bindgen]
@@ -42,10 +52,8 @@ pub fn typing(program: &str, cb: &js_sys::Function) {
 /// * `term_eval_json` - The program to evaluate. It can be the `TermEval`, the `TermCtx`, or the
 /// source code in string form. The latter two are converted to `TermEval` with an empty store
 /// before evaluation.
-/// * `cb` - A callback function to receive the result. The first argument is the result. If error
-/// occurs, the first argument is null and the second argument is the error message.
 #[wasm_bindgen]
-pub fn one_step_eval(program: &str, cb: &js_sys::Function) {
+pub fn one_step_eval(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Function) {
     let this = JsValue::NULL;
     let term_eval = match serde_json::from_str::<eval::TermEval>(program) {
         Ok(term_eval) => term_eval,
@@ -57,7 +65,7 @@ pub fn one_step_eval(program: &str, cb: &js_sys::Function) {
                     let error = error::Error::InternalError;
                     let error = serde_json::to_string(&error).unwrap();
                     let error = JsValue::from_str(&error);
-                    cb.call2(&this, &JsValue::NULL, &error).unwrap();
+                    cb_err.call1(&this, &error).unwrap();
                     return;
                 }
             },
@@ -68,13 +76,13 @@ pub fn one_step_eval(program: &str, cb: &js_sys::Function) {
         Err(error) => {
             let error = serde_json::to_string(&error).unwrap();
             let error = JsValue::from_str(&error);
-            cb.call2(&this, &JsValue::NULL, &error).unwrap();
+            cb_err.call1(&this, &error).unwrap();
             return;
         }
     };
     let result = serde_json::to_string(&result).unwrap();
     let result = JsValue::from_str(&result);
-    let _ = cb.call1(&this, &result);
+    let _ = cb_ok.call1(&this, &result);
 }
 
 /// Prettify the term
@@ -82,10 +90,8 @@ pub fn one_step_eval(program: &str, cb: &js_sys::Function) {
 /// # Arguments
 /// * `term_json` - The term to prettify. It can be the `TermCtx` or the source code in string form.
 /// The latter is converted to `TermCtx` before prettifying.
-/// * `cb` - A callback function to receive the result. The first argument is the result. If error
-/// occurs, the first argument is null and the second argument is the error message.
 #[wasm_bindgen]
-pub fn prettify(term_ctx: &str, cb: &js_sys::Function) {
+pub fn prettify(term_ctx: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Function) {
     let this = JsValue::NULL;
     let term_ctx = match serde_json::from_str::<syntax::TermCtx>(term_ctx) {
         Ok(term_ctx) => term_ctx,
@@ -96,7 +102,7 @@ pub fn prettify(term_ctx: &str, cb: &js_sys::Function) {
                     let error = error::Error::InternalError;
                     let error = serde_json::to_string(&error).unwrap();
                     let error = JsValue::from_str(&error);
-                    cb.call2(&this, &JsValue::NULL, &error).unwrap();
+                    cb_err.call1(&this, &error).unwrap();
                     return;
                 }
             }
@@ -104,6 +110,6 @@ pub fn prettify(term_ctx: &str, cb: &js_sys::Function) {
     };
     let result = formatter::format_termctx(&term_ctx);
     let result = JsValue::from_str(&result);
-    let _ = cb.call1(&this, &result);
+    let _ = cb_ok.call1(&this, &result);
 }
 

@@ -1,6 +1,7 @@
 use crate::syntax::{Qualifier, Term, TermCtx};
 
-const INDENT: &str = "  ";
+/// The tab width is 4 spaces
+const INDENT: &str = "    ";
 
 struct TermFormatter {
     indent: usize,
@@ -90,7 +91,8 @@ impl TermFormatter {
                     oneline
                 }
             }
-            Term::Abstraction(q, x, _xtype, t1) => {
+            Term::Abstraction(q, x, _type, t1) => {
+                // TODO: format type annotation
                 self.indent();
                 let s1 = self.write_termctx(t1);
                 self.dedent();

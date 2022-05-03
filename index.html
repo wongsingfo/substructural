@@ -6,17 +6,22 @@
 	<title>Substructural Type System</title>
 	<link rel="stylesheet" href="css/index.css">
 	<link rel="stylesheet" href="css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/codemirror.css">
+	<link rel="stylesheet" href="css/lint.css">
 </head>
 
 <body>
-	<div class="container my-5" x-data="Substructural()" x-init="init()">
+	<div class="container my-5" x-data="Substructural()" x-init="init_me">
 		<h1>Substructural Type System</h1>
 		<p x-show="!initialized">WASM Loading ...</p>
-		<textarea class="mono w-100" x-model="input_code" @keyup="onInputChanged()"></textarea>
-		<textarea class="mono w-100" style="height: 50em" x-model="output_syntax" x-init="onInputChanged()"></textarea>
+		<p><textarea id="source-code">|x: $($(bool) -> ($bool)) -> int| y (z)</textarea></p>
+		<!-- <textarea class="mono w-100" style="height: 50em" x-model="output_syntax" x-init="onInputChanged()"></textarea> -->
 	</div>
 
 	<script src="js/bootstrap.min.js"></script>
+	<script src="js/codemirror.js"></script>
+	<script src="js/simple.js"></script>
+	<script src="js/lint.js"></script>
 	<script type="module">
 		import init, * as api from "./js/wasm/substructural.js";
 		let substructural = Object.assign({}, api);

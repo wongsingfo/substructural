@@ -1,16 +1,21 @@
-use std::fmt::{Display, Formatter};
 use pest::error::Error as PestError;
 use pest::RuleType;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 // hint: generate `source` from `Span::as_str()`
 // hint: Get the position with `Span::start() -> usize` and `Span::end() -> usize`
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Error {
-    // TODO: the error should contain the line and column number
-    PestError { message: String },
-    ParseError { message: String, source: String },
-    EvaluateError { message: String, source: String },
+    ParseError {
+        message: String,
+        start: usize,
+        end: usize,
+    },
+    EvaluateError {
+        message: String,
+        source: String,
+    },
     InternalError,
 }
 
@@ -18,13 +23,12 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Error::PestError { message } => write!(f, "Pest error: {}", message),
-            Error::ParseError { message, source } => {
-                write!(f, "Parse error: {}\n{}", message, source)
-            },
+            Error::ParseError { message, .. } => {
+                write!(f, "Parse error: {}\n", message)
+            }
             Error::EvaluateError { message, source } => {
                 write!(f, "Evaluate error: {}\n{}", message, source)
-            },
+            }
             Error::InternalError => write!(f, "Internal error"),
         }
     }
@@ -32,8 +36,19 @@ impl Display for Error {
 
 impl<R: RuleType> From<PestError<R>> for Error {
     fn from(error: PestError<R>) -> Self {
-        Error::PestError {
+        let location = &error.location;
+        let start = match location {
+            pest::error::InputLocation::Pos(i) => *i,
+            pest::error::InputLocation::Span((i, _)) => *i,
+        };
+        let end = match location {
+            pest::error::InputLocation::Pos(_) => start + 1,
+            pest::error::InputLocation::Span((_, j)) => *j,
+        };
+        Error::ParseError {
             message: format!("{}", error),
+            start,
+            end,
         }
     }
 }
