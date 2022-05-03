@@ -1,10 +1,11 @@
 use std::fmt::{Display, Formatter};
 use pest::error::Error as PestError;
 use pest::RuleType;
+use serde::{Deserialize, Serialize};
 
 // hint: generate `source` from `Span::as_str()`
 // hint: Get the position with `Span::start() -> usize` and `Span::end() -> usize`
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Error {
     // TODO: the error should contain the line and column number
     PestError { message: String },

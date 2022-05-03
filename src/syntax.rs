@@ -3,18 +3,19 @@ use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
 use pest_derive::Parser;
 use std::fmt;
+use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 struct IdentParser;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Context {
     pub start: usize,
     pub end: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TermCtx(pub Context, pub Term);
 
 impl fmt::Debug for TermCtx {
@@ -23,7 +24,7 @@ impl fmt::Debug for TermCtx {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Term {
     Variable(String),
     Boolean(Qualifier, bool),
@@ -33,16 +34,16 @@ pub enum Term {
     Conditional(Box<TermCtx>, Box<TermCtx>, Box<TermCtx>),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Type(pub Qualifier, pub Pretype);
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum Qualifier {
     Nop,
     Linear,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Pretype {
     Boolean,
     Integer,

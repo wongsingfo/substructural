@@ -1,19 +1,20 @@
 use crate::error::Error;
 use crate::syntax::{Qualifier, Term, TermCtx};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Binding {
     name: String,
     value: TermCtx,
 }
 
-#[derive(Debug, Clone)]
-struct Store {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Store {
     bindings: Vec<Binding>,
 }
 
 impl Store {
-    fn new_empty() -> Store {
+    pub fn new_empty() -> Store {
         Store {
             bindings: Vec::new(),
         }
@@ -44,10 +45,19 @@ impl Store {
     }
 }
 
-#[derive(Debug)]
-struct TermEval {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TermEval {
     store: Store,
     term: TermCtx,
+}
+
+impl From<TermCtx> for TermEval {
+    fn from(term: TermCtx) -> TermEval {
+        TermEval {
+            store: Store::new_empty(),
+            term,
+        }
+    }
 }
 
 fn is_value(term: &TermCtx) -> bool {
@@ -92,7 +102,7 @@ fn eval_value(store: &mut Store, term_ctx: &TermCtx) -> Result<TermCtx, Error> {
     }
 }
 
-fn one_step_eval(term_eval: TermEval) -> Result<TermEval, Error> {
+pub(crate) fn one_step_eval(term_eval: TermEval) -> Result<TermEval, Error> {
     let TermEval {
         mut store,
         term: TermCtx(ctx, term),
