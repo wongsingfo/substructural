@@ -263,6 +263,16 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_keyword() {
+        let input = "else";
+        assert!(IdentParser::parse(Rule::program, input).is_err());
+        let input = "if";
+        assert!(IdentParser::parse(Rule::program, input).is_err());
+        let input = "if0";
+        assert!(IdentParser::parse(Rule::program, input).is_ok());
+    }
+
+    #[test]
     fn test_variable() {
         let input = "_";
         assert!(IdentParser::parse(Rule::program, input).is_ok());

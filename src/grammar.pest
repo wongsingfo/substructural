@@ -28,6 +28,7 @@ kw_bool       = @{ "bool" ~ !identifier_continue }
 kw_int        = @{ "int" ~ !identifier_continue }
 kw_true       = @{ "true" ~ !identifier_continue }
 kw_false      = @{ "false" ~ !identifier_continue }
+keywords = { kw_if | kw_else | kw_bool | kw_int }
 
 // SOI and EOI are two special rules that match, respectively, the start of
 // inputand the end of input.
@@ -43,7 +44,7 @@ term = _{ ( abstraction | literal | conditional | variable | bracket ) ~ applica
 // matching rules are silent. By contrast, compound atomic rules produce inner
 // tokens as normal.
 
-variable = @{ identifier_start ~ identifier_continue* }
+variable = @{ !keywords ~ identifier_start ~ identifier_continue* }
 
 number = @{ (digit)+ ~!identifier_continue }
 
