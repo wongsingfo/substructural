@@ -18,7 +18,8 @@ pub enum Error {
     },
     TypeError {
         message: String,
-        source: String,
+        start: usize,
+        end: usize,
     },
     InternalError,
 }
@@ -33,8 +34,12 @@ impl Display for Error {
             Error::EvaluateError { message, source } => {
                 write!(f, "Evaluate error: {}\n{}", message, source)
             }
-            Error::TypeError { message, source } => {
-                write!(f, "Type error: {}\n{}", message, source)
+            Error::TypeError {
+                message,
+                start,
+                end,
+            } => {
+                write!(f, "Type error in [Ln {}, Col {}]: {}\n", start, end, message)
             }
             Error::InternalError => write!(f, "Internal error"),
         }

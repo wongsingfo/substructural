@@ -25,7 +25,8 @@ fn type_check_aux(
 ) -> Result<Type, Error> {
     let TermCtx(span, term) = term_ctx;
     let err = |s: String| Error::TypeError {
-        source: span.to_string(),
+        start: span.start,
+        end: span.end,
         message: s,
     };
     let type_: Type = match term {
