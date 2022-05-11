@@ -3,7 +3,7 @@ use crate::syntax::{Qualifier, Term, TermCtx};
 /// The tab width is 4 spaces
 const INDENT: &str = "    ";
 
-struct TermFormatter {
+pub struct TermFormatter {
     indent: usize,
     line_width: usize,
 }

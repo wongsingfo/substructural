@@ -184,6 +184,7 @@ pub(crate) fn one_step_eval(term_eval: TermEval) -> Result<TermEval, Error> {
 #[cfg(test)]
 mod test {
     use crate::syntax::parse_program;
+    use crate::formatter::TermFormatter;
 
     use super::*;
 
@@ -218,5 +219,21 @@ mod test {
             result.store.bindings.is_empty(),
             "Store should be empty because `bool` is linear"
         );
+    }
+
+    #[test]
+    fn test_eval_closure() {
+        let store = Store::new_empty();
+        let mut formatter = TermFormatter::new();
+        let input = "(|x| |y| x) (true) (false)";
+        let term = parse_program(input).unwrap();
+        let result = TermEval { store, term };
+        println!("{}", formatter.write_termctx(&result.term));
+        let result = one_step_eval(result).unwrap();
+        println!("{:?} | {}", result.store,formatter.write_termctx(&result.term));
+        let result = one_step_eval(result).unwrap();
+        println!("{:?} | {}", result.store,formatter.write_termctx(&result.term));
+        let result = one_step_eval(result).unwrap();
+        println!("{:?} | {}", result.store,formatter.write_termctx(&result.term));
     }
 }
