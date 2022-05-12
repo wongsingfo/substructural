@@ -2,8 +2,8 @@ use crate::error::Error;
 use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
 use pest_derive::Parser;
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -20,7 +20,11 @@ pub struct TermCtx(pub Context, pub Term);
 
 impl fmt::Debug for TermCtx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.1.fmt(f)
+        let TermCtx(Context { start, end }, _) = self;
+        f.debug_tuple("")
+            .field(&format!("context: {}~{}", start, end))
+            .field(&self.1)
+            .finish()
     }
 }
 
@@ -96,8 +100,13 @@ fn parse_pairs(mut pairs: Pairs<Rule>) -> Result<(TermCtx, Pairs<Rule>), Error> 
     while let Some(Rule::application) = pairs.peek().map(|p| p.as_rule()) {
         let pairs2 = pairs.next().unwrap().into_inner();
         let (term2, _) = parse_pairs(pairs2)?;
-        let source = term2.0.clone();
-        term1 = TermCtx(source, Term::Application(Box::new(term1), Box::new(term2)))
+
+        let TermCtx(Context { start, .. }, _) = term1;
+        let TermCtx(Context { end, .. }, _) = term2;
+        term1 = TermCtx(
+            Context { start, end },
+            Term::Application(Box::new(term1), Box::new(term2)),
+        )
     }
 
     Ok((term1, pairs))
@@ -336,6 +345,15 @@ mod test {
         let output = IdentParser::parse(Rule::program, input).unwrap();
         println!("{:#?}", output);
         assert!(parse_program(input).is_err());
+    }
+
+    #[test]
+    fn test_parse_prog06() {
+        let input = "(|x: $bool| if x { false } else { true }) ($true)";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        let output = parse_program(input).unwrap();
+        println!("{:#?}", output);
     }
 
     #[test]

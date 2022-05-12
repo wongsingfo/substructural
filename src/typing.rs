@@ -157,7 +157,7 @@ pub fn convert_hashmap_to_vec<'a>(
     let mut event_i = event.iter().peekable();
 
     let mut start = 0;
-    for i in 0..source.len() {
+    for (i, c) in source.char_indices() {
         let mut is_changed = false;
         let mut is_changed_type: Option<Type> = None;
         while let Some((pos, t, ty)) = event_i.peek() {
@@ -181,7 +181,27 @@ pub fn convert_hashmap_to_vec<'a>(
                 ty: is_changed_type.map(|t| formatter.format_type(&t)),
                 s: &source[start..i],
             });
-            start = i;
+            if c == '\n' {
+                tags.push(TypedTermStr {
+                    ty: None,
+                    s: &source[i..i + 1],
+                });
+                start = i + 1;
+            } else {
+                start = i;
+            }
+        } else if c == '\n' {
+            if start < i {
+                tags.push(TypedTermStr {
+                    ty: stack.last().map(|t| formatter.format_type(&t)),
+                    s: &source[start..i],
+                });
+            }
+            tags.push(TypedTermStr {
+                ty: None,
+                s: &source[i..i + 1],
+            });
+            start = i + 1;
         }
     }
     if start < source.len() {
