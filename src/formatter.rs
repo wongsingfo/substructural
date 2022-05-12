@@ -66,7 +66,7 @@ impl TermFormatter {
             Pretype::Function(t1, t2) => {
                 // the arrow is right-associated.
                 let left_is_arrow = match **t1 {
-                    Type(_, Pretype::Function(..)) => true,
+                    Type(Qualifier::Nop, Pretype::Function(..)) => true,
                     _ => false,
                 };
                 format!(
@@ -76,7 +76,18 @@ impl TermFormatter {
                 )
             }
         };
-        let result = format!("{}{}", self.write_qualifer(q), s);
+        let q = self.write_qualifer(q);
+        // TODO: refactor 
+        let t_if_function = match t {
+            Pretype::Function(..) => true,
+            _ => false,
+        };
+        let s = if !q.is_empty() && t_if_function {
+            format!("({})", s)
+        }else {
+            s
+        };
+        let result = format!("{}{}", q, s);
         let result = if need_bracket {
             format!("({})", result)
         } else {
@@ -189,6 +200,8 @@ mod test {
             "(|x: bool| x) (false)",
             "(|x: bool->bool->bool| x) (false)",
             "(|x: (bool->bool)->bool| x) (false)",
+            "|x: $($int->bool)| x ($5)",
+            "|x: $($int->bool)->int| x",
         ];
         for p in prog.iter() {
             let result = format_termctx(&parse_program(p).unwrap());

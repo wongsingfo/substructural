@@ -27,20 +27,23 @@ body {
   transform: translateX(-50%);
   margin-bottom: var(--tip-bottom-margin);
 
-  width: 10rem;
-  padding: 0.4rem 0;
+  min-width: 10rem;
+  padding: 0.3rem 0.4rem;
   border-radius: 0.5rem;
   background: var(--tip-color);
   color: #fff;
   text-align: center;
-  z-index: 1;
+  font-weight: normal;
+  display: block;
 
+  z-index: 1;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
 
   pointer-events: none;
 }
 
+/*
 .typing-tip:after {
   content: "";
   position: absolute;
@@ -60,16 +63,20 @@ body {
 
   pointer-events: none;
 }
+*/
 
 .typing-tip:hover {
-  border-bottom: 1px dashed #000;
+  /* border-bottom: 1px dashed #000; */
   font-weight: bold;
+  outline: 1px dashed #000;
 }
 
 .typing-tip:hover:before {
   opacity: 1;
 }
 
+/*
 .typing-tip:hover:after {
   opacity: 1;
 }
+*/

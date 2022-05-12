@@ -165,19 +165,24 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
             Ok(term1)
         }
         Rule::abstraction => {
-            let source = pair.as_span();
             let mut inner = pair.into_inner();
             let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
                 parse_qualifier(inner.next().unwrap())
             } else {
                 Qualifier::Nop
             };
-            let variable = inner.next().unwrap().as_str();
+            let vertical_bar1 = inner.next().unwrap();
+            let variable = inner.next().unwrap();
+            let variable = variable.as_str();
             if let Some(Rule::typing) = inner.peek().map(|p| p.as_rule()) {
                 let typing = parse_typing(inner.next().unwrap())?;
+                let vertical_bar2 = inner.next().unwrap();
+                let start = vertical_bar1.as_span().start();
+                let end = vertical_bar2.as_span().end();
+                let source = Context { start, end };
                 let (term1, _) = parse_pairs(inner)?;
                 Ok(TermCtx(
-                    source.into(),
+                    source,
                     Term::Abstraction(
                         qualifier,
                         variable.to_string(),
@@ -186,6 +191,10 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                     ),
                 ))
             } else {
+                let vertical_bar2 = inner.next().unwrap();
+                let start = vertical_bar1.as_span().start();
+                let end = vertical_bar2.as_span().end();
+                let source = Context { start, end };
                 let (term1, _) = parse_pairs(inner)?;
                 Ok(TermCtx(
                     source.into(),

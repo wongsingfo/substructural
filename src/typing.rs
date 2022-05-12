@@ -30,6 +30,10 @@ fn type_check_aux(
         end: span.end,
         message: s,
     };
+    let need_type_tip = match term {
+        Term::Application(..) => false,
+        _ => true,
+    };
     let type_: Type = match term {
         Term::Variable(id) => {
             let ty = type_ctx
@@ -105,7 +109,9 @@ fn type_check_aux(
         }
         _ => return Err(err(format!("unknown term: {:?}", term))),
     };
-    type_map.insert(*span, type_.clone());
+    if need_type_tip {
+        type_map.insert(*span, type_.clone());
+    }
     Ok(type_)
 }
 

@@ -19,7 +19,7 @@ right_curly   = _{ "}" }
 semicolon     = _{ ":" }
 arrow         = _{ "->" }
 dollar        = _{ "$" }
-vertical_bar  = _{ "|" }
+vertical_bar  = @{ "|" }
 
 // keywords
 kw_if         = @{ "if" ~ !identifier_continue }
