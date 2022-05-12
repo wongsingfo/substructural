@@ -21,7 +21,7 @@ pub fn greet(name: &str) {
 /// # Arguments
 /// * `source` - The source code to lint.
 #[wasm_bindgen]
-pub fn term_lint(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Function) {
+pub fn term_lint(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Function) -> Result<(), JsValue> {
     let this = JsValue::NULL;
     let tree = syntax::parse_program(program);
     let result = match tree {
@@ -29,21 +29,68 @@ pub fn term_lint(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Funct
         Err(error) => {
             let error = serde_json::to_string(&error).unwrap();
             cb_err.call1(&this, &JsValue::from_str(&error)).unwrap();
-            return;
+            return Ok(());
         }
     };
     let result = formatter::format_termctx(&result);
     let result = JsValue::from_str(&result);
     let this = JsValue::NULL;
-    cb_ok.call1(&this, &result).unwrap();
+    cb_ok.call1(&this, &result)?;
+    Ok(())
 }
 
 #[wasm_bindgen]
-pub fn typing(program: &str, cb: &js_sys::Function) {
-    let result = "todo(crz)";
-    let result = JsValue::from_str(&result);
+pub fn typing(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Function) {
     let this = JsValue::NULL;
-    let _ = cb.call1(&this, &result);
+    let term = match serde_json::from_str::<syntax::TermCtx>(program) {
+        Ok(term) => term,
+        Err(_error) => match syntax::parse_program(program) {
+            Ok(term) => term,
+            Err(_error) => {
+                let error = error::Error::InternalError {
+                    message: "Failed to parse program for typing".to_string(),
+                };
+                let error = serde_json::to_string(&error).unwrap();
+                let error = JsValue::from_str(&error);
+                cb_err.call1(&this, &error).unwrap();
+                return;
+            }
+        },
+    };
+    let _result = match typing::type_check(&term) {
+        Ok(result) => result,
+        Err(error) => {
+            let error = serde_json::to_string(&error).unwrap();
+            cb_err.call1(&this, &JsValue::from_str(&error)).unwrap();
+            return;
+        }
+    };
+    // Reformat the code and do the typing again.
+    let term_s = formatter::format_termctx(&term);
+    let term = syntax::parse_program(&term_s).unwrap();
+    let result = typing::type_check(&term);
+    let result = match result {
+        Ok(result) => result,
+        Err(error) => {
+            let error = serde_json::to_string(&error).unwrap();
+            cb_err.call1(&this, &JsValue::from_str(&error)).unwrap();
+            return;
+        }
+    };
+    let result = typing::convert_hashmap_to_vec(&result, &term_s);
+    let result = match serde_json::to_string(&result) {
+        Ok(result) => result,
+        Err(error) => {
+            let error = error::Error::InternalError {
+                message: error.to_string(),
+            };
+            let error = serde_json::to_string(&error).unwrap();
+            cb_err.call1(&this, &JsValue::from_str(&error)).unwrap();
+            return;
+        }
+    };
+    let result = JsValue::from_str(&result);
+    let _ = cb_ok.call1(&this, &result).unwrap();
 }
 
 /// Evaluate a program.
@@ -62,7 +109,9 @@ pub fn one_step_eval(program: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::F
             Err(_error) => match syntax::parse_program(program) {
                 Ok(term) => Into::<eval::TermEval>::into(term),
                 Err(_error) => {
-                    let error = error::Error::InternalError;
+                    let error = error::Error::InternalError {
+                        message: "Failed to parse program for evaluation".to_string(),
+                    };
                     let error = serde_json::to_string(&error).unwrap();
                     let error = JsValue::from_str(&error);
                     cb_err.call1(&this, &error).unwrap();
@@ -95,21 +144,20 @@ pub fn prettify(term_ctx: &str, cb_ok: &js_sys::Function, cb_err: &js_sys::Funct
     let this = JsValue::NULL;
     let term_ctx = match serde_json::from_str::<syntax::TermCtx>(term_ctx) {
         Ok(term_ctx) => term_ctx,
-        Err(_error) => {
-            match syntax::parse_program(term_ctx) {
-                Ok(term) => Into::<syntax::TermCtx>::into(term),
-                Err(_error) => {
-                    let error = error::Error::InternalError;
-                    let error = serde_json::to_string(&error).unwrap();
-                    let error = JsValue::from_str(&error);
-                    cb_err.call1(&this, &error).unwrap();
-                    return;
-                }
+        Err(_error) => match syntax::parse_program(term_ctx) {
+            Ok(term) => Into::<syntax::TermCtx>::into(term),
+            Err(_error) => {
+                let error = error::Error::InternalError {
+                    message: "Failed to parse term for prettifying".to_string(),
+                };
+                let error = serde_json::to_string(&error).unwrap();
+                let error = JsValue::from_str(&error);
+                cb_err.call1(&this, &error).unwrap();
+                return;
             }
-        }
+        },
     };
     let result = formatter::format_termctx(&term_ctx);
     let result = JsValue::from_str(&result);
     let _ = cb_ok.call1(&this, &result);
 }
-

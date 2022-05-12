@@ -21,7 +21,9 @@ pub enum Error {
         start: usize,
         end: usize,
     },
-    InternalError,
+    InternalError {
+        message: String,
+    },
 }
 
 // TODO: JSON format
@@ -41,7 +43,9 @@ impl Display for Error {
             } => {
                 write!(f, "Type error in [Ln {}, Col {}]: {}\n", start, end, message)
             }
-            Error::InternalError => write!(f, "Internal error"),
+            Error::InternalError {
+                message,
+            } => write!(f, "Internal error: {}", message),
         }
     }
 }

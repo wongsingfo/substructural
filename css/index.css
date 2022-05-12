@@ -1,4 +1,66 @@
+body {
+  --tip-color: #221;
+  --tip-bottom-margin: 0.5rem;
+}
 
 .mono {
-  font-family:Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;
+  font-family: Consolas, Monaco, Lucida Console, Liberation Mono,
+    DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
+}
+
+.typing-tip {
+  position: relative;
+  cursor: help;
+}
+
+.typing-tip:before {
+  content: attr(data-text);
+  position: absolute;
+
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: var(--tip-bottom-margin);
+
+  width: 10rem;
+  padding: 0.4rem 0;
+  border-radius: 0.5rem;
+  background: var(--tip-color);
+  color: #fff;
+  text-align: center;
+  z-index: 1;
+
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.typing-tip:after {
+  content: "";
+  position: absolute;
+
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+
+  border-style: solid;
+  border-color: var(--tip-color) transparent transparent transparent;
+  border-width: 0.35rem;
+
+  top: calc(0 - var(--tip-bottom-margin));
+
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.typing-tip:hover {
+  border-bottom: 1px dashed #000;
+  font-weight: bold;
+}
+
+.typing-tip:hover:before {
+  opacity: 1;
+}
+
+.typing-tip:hover:after {
+  opacity: 1;
 }

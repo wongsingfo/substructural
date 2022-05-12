@@ -228,12 +228,11 @@ mod test {
         let input = "(|x| |y| x) (true) (false)";
         let term = parse_program(input).unwrap();
         let result = TermEval { store, term };
-        println!("{}", formatter.write_termctx(&result.term));
         let result = one_step_eval(result).unwrap();
-        println!("{:?} | {}", result.store,formatter.write_termctx(&result.term));
+        println!("{:?} | {}", result.store,formatter.format_termctx(&result.term));
         let result = one_step_eval(result).unwrap();
-        println!("{:?} | {}", result.store,formatter.write_termctx(&result.term));
+        println!("{:?} | {}", result.store,formatter.format_termctx(&result.term));
         let result = one_step_eval(result).unwrap();
-        println!("{:?} | {}", result.store,formatter.write_termctx(&result.term));
+        println!("{:?} | {}", result.store,formatter.format_termctx(&result.term));
     }
 }

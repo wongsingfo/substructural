@@ -1,6 +1,7 @@
-// TODO(crz)
 use crate::error::Error;
+use crate::formatter::TermFormatter;
 use crate::syntax::{Context, Pretype, Qualifier, Term, TermCtx, Type};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 type TypeCtx = HashMap<String, Type>;
@@ -93,7 +94,12 @@ fn type_check_aux(
             let fun_type = type_check_aux(fun, type_ctx, type_map)?;
             let arg_type = type_check_aux(arg, type_ctx, type_map)?;
             match fun_type {
-                Type(_, Pretype::Function(ty1, ty2)) if *ty1 == arg_type => *ty2,
+                Type(_, Pretype::Function(ty1, ty2)) => {
+                    if *ty1 != arg_type {
+                        return Err(err(format!("expected {:?}, given {:?}", ty1, arg_type)));
+                    }
+                    *ty2
+                }
                 _ => return Err(err(format!("expect Function, given {:?}", fun_type))),
             }
         }
@@ -108,4 +114,126 @@ pub fn type_check(term_ctx: &TermCtx) -> Result<HashMap<Context, Type>, Error> {
     let mut type_ctx = HashMap::<String, Type>::new();
     type_check_aux(term_ctx, &mut type_ctx, &mut type_map)?;
     Ok(type_map)
+}
+
+#[derive(Eq, PartialEq)]
+struct HeapState(usize, Type);
+
+impl PartialOrd for HeapState {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for HeapState {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TypedTermStr<'a> {
+    ty: Option<String>,
+    s: &'a str,
+}
+
+pub fn convert_hashmap_to_vec<'a>(
+    type_map: &HashMap<Context, Type>,
+    source: &'a str,
+) -> Vec<TypedTermStr<'a>> {
+    // (position, is_start, type)
+    let mut event: Vec<(usize, bool, &Type)> = Vec::new();
+    let mut max_pos = 0;
+    for (span, ty) in type_map.iter() {
+        event.push((span.start, true, ty));
+        // the `end` is not inclusive
+        event.push((span.end, false, ty));
+        max_pos = max_pos.max(span.end);
+    }
+    event.sort_by_key(|&(pos, t, _)| (pos, t));
+    let mut formatter = TermFormatter::new();
+    let mut tags: Vec<TypedTermStr<'a>> = Vec::new();
+    let mut stack: Vec<&Type> = Vec::new();
+    let mut event_i = event.iter().peekable();
+
+    let mut start = 0;
+    for i in 0..source.len() {
+        let mut is_changed = false;
+        let mut is_changed_type: Option<Type> = None;
+        while let Some((pos, t, ty)) = event_i.peek() {
+            if *pos == i {
+                if !is_changed {
+                    is_changed_type = stack.last().map(|&t| t.to_owned());
+                }
+                is_changed = true;
+                if *t {
+                    stack.push(ty);
+                } else {
+                    stack.pop();
+                }
+                event_i.next();
+            } else {
+                break;
+            }
+        }
+        if is_changed && start < i {
+            tags.push(TypedTermStr {
+                ty: is_changed_type.map(|t| formatter.format_type(&t)),
+                s: &source[start..i],
+            });
+            start = i;
+        }
+    }
+    if start < source.len() {
+        tags.push(TypedTermStr {
+            ty: stack
+                .last()
+                .map(|&t| t.to_owned())
+                .map(|t| formatter.format_type(&t)),
+            s: &source[start..],
+        });
+    }
+
+    tags
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::syntax::parse_program;
+
+    #[test]
+    fn test_type_atom() {
+        let input = "$true";
+        let term = parse_program(input).unwrap();
+        let type_map = type_check(&term).unwrap();
+        println!("{:?}", type_map);
+        assert_eq!(type_map.len(), 1);
+    }
+
+    #[test]
+    fn test_type_if() {
+        let input = "if $true { 1 } else { 2 }";
+        let term = parse_program(input).unwrap();
+        let type_map = type_check(&term).unwrap();
+        println!("{:#?}", type_map);
+    }
+
+    #[test]
+    fn test_type_prog01() {
+        let input = "(|x: bool| x) (false)";
+        let term = parse_program(input).unwrap();
+        let type_map = type_check(&term).unwrap();
+        println!("{:?}", type_map);
+    }
+
+    #[test]
+    fn test_hashmap_to_vec() {
+        let input = "(|x: $bool| if x { false } else { true }) ($false)";
+        let term = parse_program(input).unwrap();
+        let type_map = type_check(&term).unwrap();
+        let vec = convert_hashmap_to_vec(&type_map, &input);
+        println!("{:#?}", type_map);
+        println!("{:#?}", vec);
+    }
 }
