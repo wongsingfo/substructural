@@ -16,9 +16,10 @@ export function greet(name: string): void;
 export function term_lint(program: string, cb_ok: Function, cb_err: Function): void;
 /**
 * @param {string} program
-* @param {Function} cb
+* @param {Function} cb_ok
+* @param {Function} cb_err
 */
-export function typing(program: string, cb: Function): void;
+export function typing(program: string, cb_ok: Function, cb_err: Function): void;
 /**
 * Evaluate a program.
 *
@@ -48,12 +49,13 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly greet: (a: number, b: number) => void;
-  readonly term_lint: (a: number, b: number, c: number, d: number) => void;
-  readonly typing: (a: number, b: number, c: number) => void;
+  readonly term_lint: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly typing: (a: number, b: number, c: number, d: number) => void;
   readonly one_step_eval: (a: number, b: number, c: number, d: number) => void;
   readonly prettify: (a: number, b: number, c: number, d: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_exn_store: (a: number) => void;
 }
 

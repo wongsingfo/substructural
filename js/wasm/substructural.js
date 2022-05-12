@@ -200,10 +200,17 @@ function addBorrowedObject(obj) {
 */
 export function term_lint(program, cb_ok, cb_err) {
     try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         var ptr0 = passStringToWasm0(program, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
-        wasm.term_lint(ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
+        wasm.term_lint(retptr, ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        if (r1) {
+            throw takeObject(r0);
+        }
     } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
         heap[stack_pointer++] = undefined;
         heap[stack_pointer++] = undefined;
     }
@@ -211,14 +218,16 @@ export function term_lint(program, cb_ok, cb_err) {
 
 /**
 * @param {string} program
-* @param {Function} cb
+* @param {Function} cb_ok
+* @param {Function} cb_err
 */
-export function typing(program, cb) {
+export function typing(program, cb_ok, cb_err) {
     try {
         var ptr0 = passStringToWasm0(program, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
-        wasm.typing(ptr0, len0, addBorrowedObject(cb));
+        wasm.typing(ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
     } finally {
+        heap[stack_pointer++] = undefined;
         heap[stack_pointer++] = undefined;
     }
 }
