@@ -135,7 +135,6 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             }
             _ => Term::Application(Box::new(one_step_eval_aux(store, *t1)?), t2),
         },
-        _ => return Err(err(format!("Unknown term"))),
     };
     Ok(TermCtx(ctx, term))
 }
@@ -188,7 +187,6 @@ mod test {
         println!("{:#?}", result);
     }
 
-    // #[ignore] // TODO(crz): help
     #[test]
     fn test_eval_closure() {
         let store = Store::new_empty();

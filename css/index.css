@@ -1,6 +1,29 @@
-body {
+html {
+  margin: 0 auto;
+  height: 100%;
+
+  --text-color: #c4c4c4;
   --tip-color: #221;
   --tip-bottom-margin: 0.5rem;
+}
+
+body {
+  background-image: url(https://ak.hypergryph.com/assets/index/images/ak/pc/bk.jpg);
+  background-size: cover;
+  background-position: 50% 0;
+  background-repeat: no-repeat;
+  color: var(--text-color);
+}
+
+html,
+body {
+  cursor: url("../img/cursor-inner.png") 3 3, default;
+  position: static;
+}
+
+a,
+button {
+  cursor: url("../img/cursor-inner.png") 3 3, pointer;
 }
 
 .mono {
@@ -8,13 +31,106 @@ body {
     DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
 }
 
-.typing-container {
+.container-main {
+  display: grid;
+  grid-template-columns: 1fr minmax(auto, 800px) 1fr;
+  grid-template-rows: repeat(5, auto);
+  grid-template-areas:
+    ". banner ."
+    ". editor ."
+    ". control ."
+    ". eval ."
+    ". . .";
+}
+
+.banner {
+  grid-area: banner;
+}
+
+.editor {
+  grid-area: editor;
+  display: grid;
+}
+
+.control {
+  margin: 1em 0;
+  grid-area: control;
+}
+
+.eval {
+  grid-area: eval;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "typing typing typing"
+    "eval0 arrow eval1"
+    "ctx0 . ctx1";
+}
+
+.eval-arrow {
+  margin: 5px;
+  font-weight: bold;
+  font-size: 2rem;
+  cursor: pointer;
+  color: white;
+  position: relative;
+  animation: bn13bouncy 5s infinite linear;
+}
+
+.eval-arrow:hover {
+/* text-decoration: underline overline; */
+  color: white;
+}
+
+@keyframes bn13bouncy {
+  0% {
+    top: 0em;
+  }
+  40% {
+    top: 0em;
+  }
+  43% {
+    top: -0.9rem;
+  }
+  46% {
+    top: 0em;
+  }
+  48% {
+    top: -0.4rem;
+  }
+  50% {
+    top: 0em;
+  }
+  100% {
+    top: 0em;
+  }
+}
+
+.typing-container,
+.code-container {
   white-space: pre;
+  border: 1px solid white;
+  border-left: 8px solid #2bf;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.code-container {
+  overflow: auto;
+}
+
+.typing-container:hover,
+.code-container:hover {
+  color: black;
+  background-color: #2bf;
+  border: 1px solid #2bf;
+  border-left: 8px solid white;
 }
 
 .typing-tip {
   position: relative;
-  cursor: help;
+  /* cursor: help; */
   display: inline;
 }
 
@@ -31,6 +147,8 @@ body {
   padding: 0.3rem 0.4rem;
   border-radius: 0.5rem;
   background: var(--tip-color);
+  border: solid gray;
+  border-width: 1px;
   color: #fff;
   text-align: center;
   font-weight: normal;
@@ -68,7 +186,7 @@ body {
 .typing-tip:hover {
   /* border-bottom: 1px dashed #000; */
   font-weight: bold;
-  outline: 1px dashed #000;
+  outline: 1px dashed white;
 }
 
 .typing-tip:hover:before {
@@ -80,3 +198,72 @@ body {
   opacity: 1;
 }
 */
+
+#cursor-container #cursor-outer {
+  position: fixed;
+  z-index: 65536;
+  transform: translate3d(-50%, -50%, 0px);
+  height: 36px;
+  width: 36px;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: background-color 0.3s, width 0.3s, height 0.3s;
+}
+
+#cursor-container #cursor-effect {
+  position: fixed;
+  z-index: 65535;
+  transform: translate3d(-50%, -50%, 0px) scale(0);
+  height: 80px;
+  width: 80px;
+  border: 4px solid #ccc;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn {
+  padding: 10px 25px;
+  min-width: 10em;
+  color: var(--text-color);
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  background: transparent;
+  outline: none !important;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+}
+
+.btn {
+  border: 2px solid rgb(255, 255, 255);
+  z-index: 1;
+}
+
+.btn:after {
+  position: absolute;
+  content: "";
+  width: 0;
+  height: 100%;
+  top: 0;
+  left: 0;
+  direction: rtl;
+  z-index: -1;
+  background: rgb(255, 255, 255);
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  color: rgb(0, 0, 0);
+}
+
+.btn:hover:after {
+  left: auto;
+  right: 0;
+  width: 100%;
+}
+
+.btn:active {
+  top: 2px;
+}

@@ -164,6 +164,7 @@ function Substructural() {
       tabSize: 4,
       gutters: ["CodeMirror-lint-markers"],
       lint: true,
+      theme: "darcula",
     });
 
     editor.on("change", (_self, _obj) => {
@@ -171,6 +172,46 @@ function Substructural() {
       this.input_code = code;
       this.onInputChanged();
     });
+    let code = editor.getValue();
+    this.input_code = code;
+    this.onInputChanged();
+  }
+
+  let eval_term1;
+
+  function prettify(arg) {
+    let result;
+    lib.prettify(
+      JSON.stringify(arg),
+      (res) => {
+        result = res;
+      },
+      console.error
+    );
+    return result;
+  }
+
+  function oneStep(arg) {
+    lib.one_step_eval(
+      arg,
+      (res) => {
+        eval_term1 = parseJSON(res);
+
+        let term1 = eval_term1.term;
+        let context1 = eval_term1.store.bindings;
+        this.eval0 = this.eval1;
+        this.ctx0 = this.ctx1;
+        this.eval1 = prettify(term1);
+        let ctx1 = [];
+        for (const [key, value] of Object.entries(context1).sort((a, b) =>
+          b[0].localeCompare(a[0])
+        )) {
+          ctx1.push([key, prettify(value)]);
+        }
+        this.ctx1 = ctx1;
+      },
+      console.error
+    );
   }
 
   function onInputChanged() {
@@ -179,9 +220,17 @@ function Substructural() {
       input_code,
       (result) => {
         this.output_syntax = result;
+        this.eval1 = result;
+        this.ctx0 = [];
+
+        oneStep.call(this, result);
       },
       log_error
     );
+  }
+
+  function onOneStepEval() {
+    oneStep.call(this, JSON.stringify(eval_term1));
   }
 
   function updateTypingOutput(json0) {
@@ -190,19 +239,22 @@ function Substructural() {
     let result = json
       .map((span) => {
         let { ty, s } = span;
-        if (s === '\n') {
-          s = '<br/>'
-        }
-        else if (ty) {
+        if (s === "\n") {
+          s = "<br/>";
+        } else if (ty) {
           // TODO: esacpe quote in `ty`
           s = `<span class="typing-tip" data-text="${ty}">${s}</span>`;
         }
         return s;
       })
-      .join('');
+      .join("");
 
     this.typing_output = result;
   }
+
+  function onFormatCode() {}
+
+  function onEvalution() {}
 
   return {
     initialized: false,
@@ -212,5 +264,14 @@ function Substructural() {
     typing_output: "",
 
     onInputChanged: debounce(onInputChanged, 500),
+
+    onFormatCode,
+    onEvalution,
+    onOneStepEval,
+
+    eval0: "",
+    eval1: "",
+    ctx0: [],
+    ctx1: [],
   };
 }

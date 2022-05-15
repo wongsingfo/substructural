@@ -17,7 +17,8 @@ impl TermFormatter {
     pub fn new() -> Self {
         Self {
             indent: 0,
-            line_width: 80,
+            // TODO: allow changes to line_width
+            line_width: 40,
         }
     }
 
