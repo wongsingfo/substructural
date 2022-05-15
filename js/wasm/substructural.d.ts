@@ -12,14 +12,16 @@ export function greet(name: string): void;
 * @param {string} program
 * @param {Function} cb_ok
 * @param {Function} cb_err
+* @returns {any}
 */
-export function term_lint(program: string, cb_ok: Function, cb_err: Function): void;
+export function term_lint(program: string, cb_ok: Function, cb_err: Function): any;
 /**
 * @param {string} program
 * @param {Function} cb_ok
 * @param {Function} cb_err
+* @returns {any}
 */
-export function typing(program: string, cb_ok: Function, cb_err: Function): void;
+export function typing(program: string, cb_ok: Function, cb_err: Function): any;
 /**
 * Evaluate a program.
 *
@@ -30,8 +32,9 @@ export function typing(program: string, cb_ok: Function, cb_err: Function): void
 * @param {string} program
 * @param {Function} cb_ok
 * @param {Function} cb_err
+* @returns {any}
 */
-export function one_step_eval(program: string, cb_ok: Function, cb_err: Function): void;
+export function one_step_eval(program: string, cb_ok: Function, cb_err: Function): any;
 /**
 * Prettify the term
 *
@@ -41,8 +44,9 @@ export function one_step_eval(program: string, cb_ok: Function, cb_err: Function
 * @param {string} term_ctx
 * @param {Function} cb_ok
 * @param {Function} cb_err
+* @returns {any}
 */
-export function prettify(term_ctx: string, cb_ok: Function, cb_err: Function): void;
+export function prettify(term_ctx: string, cb_ok: Function, cb_err: Function): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -50,9 +54,9 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly greet: (a: number, b: number) => void;
   readonly term_lint: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly typing: (a: number, b: number, c: number, d: number) => void;
-  readonly one_step_eval: (a: number, b: number, c: number, d: number) => void;
-  readonly prettify: (a: number, b: number, c: number, d: number) => void;
+  readonly typing: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly one_step_eval: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly prettify: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
