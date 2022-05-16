@@ -221,7 +221,7 @@ function Substructural() {
       (result) => {
         this.output_syntax = result;
         this.eval1 = result;
-        this.ctx0 = [];
+        this.ctx1 = [];
 
         oneStep.call(this, result);
       },
