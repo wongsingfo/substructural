@@ -33,7 +33,7 @@ button {
 
 .container-main {
   display: grid;
-  grid-template-columns: 1fr minmax(auto, 800px) 1fr;
+  grid-template-columns: 1fr minmax(auto, 850px) 1fr;
   grid-template-rows: repeat(5, auto);
   grid-template-areas:
     ". banner ."
@@ -76,6 +76,9 @@ button {
   color: white;
   position: relative;
   animation: bn13bouncy 5s infinite linear;
+  background: inherit;
+  border: inherit;
+  height: fit-content;
 }
 
 .eval-arrow:hover {
