@@ -112,14 +112,18 @@ button {
 
 .typing-container,
 .code-container {
-  white-space: pre;
   border: 1px solid white;
   border-left: 8px solid #2bf;
   padding: 1rem;
   box-sizing: border-box;
 }
 
+.typing-container {
+  white-space: pre-wrap;
+}
+
 .code-container {
+  white-space: pre;
   overflow: auto;
 }
 

@@ -212,6 +212,9 @@ export function one_step_eval(program, cb_ok, cb_err) {
     }
 }
 
+function isLikeNone(x) {
+    return x === undefined || x === null;
+}
 /**
 * Prettify the term
 *
@@ -221,14 +224,15 @@ export function one_step_eval(program, cb_ok, cb_err) {
 * @param {string} term_ctx
 * @param {Function} cb_ok
 * @param {Function} cb_err
+* @param {number | undefined} line_width
 * @returns {any}
 */
-export function prettify(term_ctx, cb_ok, cb_err) {
+export function prettify(term_ctx, cb_ok, cb_err, line_width) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         var ptr0 = passStringToWasm0(term_ctx, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         var len0 = WASM_VECTOR_LEN;
-        wasm.prettify(retptr, ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err));
+        wasm.prettify(retptr, ptr0, len0, addBorrowedObject(cb_ok), addBorrowedObject(cb_err), !isLikeNone(line_width), isLikeNone(line_width) ? 0 : line_width);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var r2 = getInt32Memory0()[retptr / 4 + 2];

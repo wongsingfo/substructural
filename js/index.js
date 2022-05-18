@@ -180,14 +180,15 @@ function Substructural() {
 
   let eval_term1;
 
-  function prettify(arg) {
+  function prettify(arg, line_width) {
     let result;
     lib.prettify(
       JSON.stringify(arg),
       (res) => {
         result = res;
       },
-      console.error
+      console.error,
+      line_width
     );
     return result;
   }
@@ -202,12 +203,12 @@ function Substructural() {
         let context1 = eval_term1.store.bindings;
         this.eval0 = this.eval1;
         this.ctx0 = this.ctx1;
-        this.eval1 = prettify(term1);
+        this.eval1 = prettify(term1, 38);
         let ctx1 = [];
         for (const [key, value] of Object.entries(context1).sort((a, b) =>
           b[0].localeCompare(a[0])
         )) {
-          ctx1.push([key, prettify(value)]);
+          ctx1.push([key, prettify(value, 60)]);
         }
         this.ctx1 = ctx1;
       },
@@ -226,7 +227,8 @@ function Substructural() {
 
         oneStep.call(this, result);
       },
-      log_error
+      log_error,
+      38 // TODO: refactor the calls to `prettify()`
     );
   }
 

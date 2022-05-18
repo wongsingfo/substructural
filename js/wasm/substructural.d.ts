@@ -44,9 +44,10 @@ export function one_step_eval(program: string, cb_ok: Function, cb_err: Function
 * @param {string} term_ctx
 * @param {Function} cb_ok
 * @param {Function} cb_err
+* @param {number | undefined} line_width
 * @returns {any}
 */
-export function prettify(term_ctx: string, cb_ok: Function, cb_err: Function): any;
+export function prettify(term_ctx: string, cb_ok: Function, cb_err: Function, line_width?: number): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -56,7 +57,7 @@ export interface InitOutput {
   readonly term_lint: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly typing: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly one_step_eval: (a: number, b: number, c: number, d: number, e: number) => void;
-  readonly prettify: (a: number, b: number, c: number, d: number, e: number) => void;
+  readonly prettify: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
