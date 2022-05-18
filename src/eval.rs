@@ -151,7 +151,7 @@ pub(crate) fn one_step_eval(term_eval: TermEval) -> Result<TermEval, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::formatter::TermFormatter;
+    use crate::formatter::{TermFormatter, self};
     use crate::syntax::parse_program;
 
     use super::*;
@@ -190,7 +190,7 @@ mod test {
     #[test]
     fn test_eval_closure() {
         let store = Store::new_empty();
-        let mut formatter = TermFormatter::new();
+        let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
         let input = "(|x| |y| x) (true) (false)";
         let term = parse_program(input).unwrap();
         let result = TermEval { store, term };

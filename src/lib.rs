@@ -148,6 +148,7 @@ pub fn prettify(
     term_ctx: &str,
     cb_ok: &js_sys::Function,
     cb_err: &js_sys::Function,
+    line_width: Option<usize>,
 ) -> Result<JsValue, JsValue> {
     let this = JsValue::NULL;
     let term_ctx = match serde_json::from_str::<syntax::TermCtx>(term_ctx) {
@@ -164,7 +165,9 @@ pub fn prettify(
             }
         },
     };
-    let result = formatter::format_termctx(&term_ctx);
+    let line_width = line_width.unwrap_or(formatter::DEFAULT_LINE_WIDTH);
+    let mut formatter = formatter::TermFormatter::new(line_width);
+    let result = formatter.format_termctx(&term_ctx);
     let result = JsValue::from_str(&result);
     cb_ok.call1(&this, &result)
 }

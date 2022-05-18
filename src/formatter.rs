@@ -2,6 +2,7 @@ use crate::syntax::{Pretype, Qualifier, Term, TermCtx, Type};
 
 /// The tab width is 4 spaces
 const INDENT: &str = "    ";
+pub const DEFAULT_LINE_WIDTH: usize = 80;
 
 pub struct TermFormatter {
     indent: usize,
@@ -9,16 +10,15 @@ pub struct TermFormatter {
 }
 
 pub fn format_termctx(t: &TermCtx) -> String {
-    let mut formatter = TermFormatter::new();
+    let mut formatter = TermFormatter::new(DEFAULT_LINE_WIDTH);
     formatter.format_termctx(t)
 }
 
 impl TermFormatter {
-    pub fn new() -> Self {
+    pub fn new(line_width: usize) -> Self {
         Self {
             indent: 0,
-            // TODO: allow changes to line_width
-            line_width: 40,
+            line_width,
         }
     }
 

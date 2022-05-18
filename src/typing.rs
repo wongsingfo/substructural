@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::formatter::TermFormatter;
+use crate::formatter::{TermFormatter, self};
 use crate::syntax::{Context, Pretype, Qualifier, Term, TermCtx, Type};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -157,7 +157,7 @@ pub fn convert_hashmap_to_vec<'a>(
         max_pos = max_pos.max(span.end);
     }
     event.sort_by_key(|&(pos, t, _)| (pos, t));
-    let mut formatter = TermFormatter::new();
+    let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
     let mut tags: Vec<TypedTermStr<'a>> = Vec::new();
     let mut stack: Vec<&Type> = Vec::new();
     let mut event_i = event.iter().peekable();
