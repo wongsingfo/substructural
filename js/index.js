@@ -133,6 +133,7 @@ function Substructural() {
                 message,
                 severity: "warning",
               });
+              this.typing_output = "Not well-typed: " + message;
             } else {
               console.log(err);
             }
