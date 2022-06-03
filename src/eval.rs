@@ -135,6 +135,8 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             }
             _ => Term::Application(Box::new(one_step_eval_aux(store, *t1)?), t2),
         },
+        Term::Fix(..) => unimplemented!(),
+        Term::Let(..) => unimplemented!(),
     };
     Ok(TermCtx(ctx, term))
 }

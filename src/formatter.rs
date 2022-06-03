@@ -78,14 +78,14 @@ impl TermFormatter {
             }
         };
         let q = self.write_qualifer(q);
-        // TODO: refactor 
+        // TODO: refactor
         let t_if_function = match t {
             Pretype::Function(..) => true,
             _ => false,
         };
         let s = if !q.is_empty() && t_if_function {
             format!("({})", s)
-        }else {
+        } else {
             s
         };
         let result = format!("{}{}", q, s);
@@ -105,6 +105,8 @@ impl TermFormatter {
             Term::Application(t1, t2) => {
                 let need_backet_on_s1 = match **t1 {
                     TermCtx(_, Term::Abstraction(..)) => true,
+                    TermCtx(_, Term::Fix(..)) => true,
+                    TermCtx(_, Term::Let(..)) => true,
                     _ => false,
                 };
                 let s1 = self.write_termctx(t1, need_backet_on_s1);
@@ -118,32 +120,7 @@ impl TermFormatter {
                     };
                 result
             }
-            Term::Conditional(t1, t2, t3) => {
-                self.indent();
-                let s1 = self.write_termctx(t1, false);
-                let s2 = self.write_termctx(t2, false);
-                let s3 = self.write_termctx(t3, false);
-                self.dedent();
-                let oneline = format!("if {} {{ {} }} else {{ {} }}", s1, s2, s3);
-                if s1.contains("\n")
-                    || s2.contains("\n")
-                    || s3.contains("\n")
-                    || oneline.len() > self.line_width
-                {
-                    format!(
-                        "if {} {{\n{}{}\n{}}} else {{\n{}{}\n{}}}",
-                        s1,
-                        self.write_indent(1),
-                        s2,
-                        self.write_indent(0),
-                        self.write_indent(1),
-                        s3,
-                        self.write_indent(0),
-                    )
-                } else {
-                    oneline
-                }
-            }
+            Term::Conditional(..) => self.write_term_conditional(t, need_bracket),
             Term::Abstraction(q, x, t, t1) => {
                 self.indent();
                 let s1 = self.write_termctx(t1, false);
@@ -177,6 +154,72 @@ impl TermFormatter {
                     oneline
                 }
             }
+            Term::Fix(t) => {
+                let s = self.write_termctx(t, false);
+                let result = format!("fix {}", s);
+                let result = if need_bracket {
+                    format!("({})", result)
+                } else {
+                    result
+                };
+                result
+            }
+            Term::Let(..) => self.write_term_let(t, need_bracket),
+        }
+    }
+
+    fn write_term_conditional(&mut self, t: &Term, need_bracket: bool) -> String {
+        if let Term::Conditional(t1, t2, t3) = t {
+            self.indent();
+            let s1 = self.write_termctx(t1, false);
+            let s2 = self.write_termctx(t2, false);
+            let s3 = self.write_termctx(t3, false);
+            self.dedent();
+            let oneline = format!("if {} {{ {} }} else {{ {} }}", s1, s2, s3);
+            if s1.contains("\n")
+                || s2.contains("\n")
+                || s3.contains("\n")
+                || oneline.len() > self.line_width
+            {
+                format!(
+                    "if {} {{\n{}{}\n{}}} else {{\n{}{}\n{}}}",
+                    s1,
+                    self.write_indent(1),
+                    s2,
+                    self.write_indent(0),
+                    self.write_indent(1),
+                    s3,
+                    self.write_indent(0),
+                )
+            } else {
+                oneline
+            }
+        } else {
+            unreachable!();
+        }
+    }
+
+    fn write_term_let(&mut self, t: &Term, need_bracket: bool) -> String {
+        if let Term::Let(v, t1, t2) = t {
+            self.indent();
+            let s1 = self.write_termctx(t1, false);
+            let s2 = self.write_termctx(t2, false);
+            self.dedent();
+            let oneline = format!("let {} = {} in {}", v, s1, s2);
+            let result =
+                if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_width {
+                    format!("let {} = {}\n{}in {}", v, s1, self.write_indent(0), s2,)
+                } else {
+                    oneline
+                };
+            let result = if need_bracket {
+                format!("({})", result)
+            } else {
+                result
+            };
+            result
+        } else {
+            unreachable!();
         }
     }
 }
@@ -203,6 +246,8 @@ mod test {
             "(|x: (bool->bool)->bool| x) (false)",
             "|x: $($int->bool)| x ($5)",
             "|x: $($int->bool)->int| x",
+            "(fix 1) (2)",
+            "(let x = 1 in true) (2)",
         ];
         for p in prog.iter() {
             let result = format_termctx(&parse_program(p).unwrap());

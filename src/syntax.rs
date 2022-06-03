@@ -36,6 +36,8 @@ pub enum Term {
     Abstraction(Qualifier, String, Option<Box<Type>>, Box<TermCtx>),
     Application(Box<TermCtx>, Box<TermCtx>),
     Conditional(Box<TermCtx>, Box<TermCtx>, Box<TermCtx>),
+    Fix(Box<TermCtx>), // all recursive functions are unrestricted data structures
+    Let(String, Box<TermCtx>, Box<TermCtx>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -164,47 +166,9 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
             let (term1, _) = parse_pairs(inner)?;
             Ok(term1)
         }
-        Rule::abstraction => {
-            let mut inner = pair.into_inner();
-            let mut qualifier_ctx: Option<Span> = None;
-            let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
-                let p = inner.next().unwrap();
-                qualifier_ctx = Some(p.as_span());
-                parse_qualifier(p)
-            } else {
-                Qualifier::Nop
-            };
-            let vertical_bar1 = inner.next().unwrap();
-            let variable = inner.next().unwrap();
-            let variable = variable.as_str();
-            if let Some(Rule::typing) = inner.peek().map(|p| p.as_rule()) {
-                let typing = parse_typing(inner.next().unwrap())?;
-                let vertical_bar2 = inner.next().unwrap();
-                let start = qualifier_ctx.map_or(vertical_bar1.as_span().start(), |p| p.start());
-                let end = vertical_bar2.as_span().end();
-                let source = Context { start, end };
-                let (term1, _) = parse_pairs(inner)?;
-                Ok(TermCtx(
-                    source,
-                    Term::Abstraction(
-                        qualifier,
-                        variable.to_string(),
-                        Some(Box::new(typing)),
-                        Box::new(term1),
-                    ),
-                ))
-            } else {
-                let vertical_bar2 = inner.next().unwrap();
-                let start = vertical_bar1.as_span().start();
-                let end = vertical_bar2.as_span().end();
-                let source = Context { start, end };
-                let (term1, _) = parse_pairs(inner)?;
-                Ok(TermCtx(
-                    source.into(),
-                    Term::Abstraction(qualifier, variable.to_string(), None, Box::new(term1)),
-                ))
-            }
-        }
+        Rule::abstraction => parse_pair_abstraction(pair),
+        Rule::fix => parse_pair_fix(pair),
+        Rule::letv => parse_pair_let(pair),
         _ => Err(Error::ParseError {
             message: format!("Unexpected rule: {:?}", pair.as_rule()),
             start: pair.as_span().start(),
@@ -212,6 +176,66 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         }),
     };
     term1
+}
+
+fn parse_pair_abstraction(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let mut inner = pair.into_inner();
+    let mut qualifier_ctx: Option<Span> = None;
+    let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
+        let p = inner.next().unwrap();
+        qualifier_ctx = Some(p.as_span());
+        parse_qualifier(p)
+    } else {
+        Qualifier::Nop
+    };
+    let vertical_bar1 = inner.next().unwrap();
+    let variable = inner.next().unwrap();
+    let variable = variable.as_str();
+    if let Some(Rule::typing) = inner.peek().map(|p| p.as_rule()) {
+        let typing = parse_typing(inner.next().unwrap())?;
+        let vertical_bar2 = inner.next().unwrap();
+        let start = qualifier_ctx.map_or(vertical_bar1.as_span().start(), |p| p.start());
+        let end = vertical_bar2.as_span().end();
+        let source = Context { start, end };
+        let (term1, _) = parse_pairs(inner)?;
+        Ok(TermCtx(
+            source,
+            Term::Abstraction(
+                qualifier,
+                variable.to_string(),
+                Some(Box::new(typing)),
+                Box::new(term1),
+            ),
+        ))
+    } else {
+        let vertical_bar2 = inner.next().unwrap();
+        let start = vertical_bar1.as_span().start();
+        let end = vertical_bar2.as_span().end();
+        let source = Context { start, end };
+        let (term1, _) = parse_pairs(inner)?;
+        Ok(TermCtx(
+            source.into(),
+            Term::Abstraction(qualifier, variable.to_string(), None, Box::new(term1)),
+        ))
+    }
+}
+
+fn parse_pair_fix(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let mut inner = pair.into_inner();
+    let kw = inner.next().unwrap().as_span();
+    let (t, _) = parse_pairs(inner)?;
+    Ok(TermCtx(kw.into(), Term::Fix(Box::new(t))))
+}
+
+fn parse_pair_let(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let mut inner = pair.into_inner();
+    let kw_let = inner.next().unwrap().as_span();
+    let var = inner.next().unwrap().as_str().to_owned();
+    let (t1, mut inner) = parse_pairs(inner)?;
+    let _kw_in = inner.next().unwrap().as_span();
+    let (t2, _) = parse_pairs(inner)?;
+
+    Ok(TermCtx(kw_let.into(), Term::Let(var, Box::new(t1), Box::new(t2))))
 }
 
 fn parse_typing(pair: Pair<Rule>) -> Result<Type, Error> {
@@ -389,6 +413,22 @@ mod test {
         println!("{:#?}", parse_program(input).unwrap());
 
         let input = "$ |x| x";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_fix() {
+        let input = "fix |x| |y| x";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_let() {
+        let input = "let x = 1 (2) in 3 (4)";
         let output = IdentParser::parse(Rule::program, input).unwrap();
         println!("{:#?}", output);
         println!("{:#?}", parse_program(input).unwrap());

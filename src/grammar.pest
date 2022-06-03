@@ -19,6 +19,7 @@ right_curly   = _{ "}" }
 semicolon     = _{ ":" }
 arrow         = _{ "->" }
 dollar        = _{ "$" }
+assign        = _{ "=" }
 vertical_bar  = @{ "|" }
 
 // keywords
@@ -28,7 +29,12 @@ kw_bool       = @{ "bool" ~ !identifier_continue }
 kw_int        = @{ "int" ~ !identifier_continue }
 kw_true       = @{ "true" ~ !identifier_continue }
 kw_false      = @{ "false" ~ !identifier_continue }
-keywords = { kw_if | kw_else | kw_bool | kw_int }
+kw_fix        = @{ "fix" ~ !identifier_continue }
+kw_let        = @{ "let" ~ !identifier_continue }
+// I am confused. Why we cannot use _{ .. } here? 
+// Answer: we need in as a seperator for term before and after it.
+kw_in         = @{ "in" ~ !identifier_continue } 
+keywords = { kw_if | kw_else | kw_bool | kw_int | kw_fix | kw_let | kw_in }
 
 // SOI and EOI are two special rules that match, respectively, the start of
 // inputand the end of input.
@@ -36,7 +42,7 @@ program = _{ SOI ~ term ~ EOI }
 
 // ============================= Term ============================= 
 
-term = _{ ( abstraction | literal | conditional | variable | bracket ) ~ application* }
+term = _{ ( abstraction | literal | conditional | variable | bracket | fix | letv ) ~ application* }
 
 // Pest has two kinds of atomic rules: atomic (@) and compound atomic ($). Both
 // kinds of atomic rule prevent implicit whitespace. The difference between the
@@ -55,6 +61,11 @@ conditional = { kw_if ~ term ~ left_curly ~ term ~ right_curly ~ kw_else ~ left_
 abstraction = { qualifier? ~ vertical_bar ~ variable ~ (semicolon ~ typing)? ~ vertical_bar ~ term }
 
 application = { left_bracket ~ term ~ right_bracket }
+
+fix = { kw_fix ~ term }
+
+// Use `letv` instead of `let` because the latter is a reserved keyword...
+letv = { kw_let ~ variable ~ assign ~ term ~ kw_in ~ term }
 
 literal = { qualifier? ~ (boolean | number) }
 
