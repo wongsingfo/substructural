@@ -56,7 +56,7 @@ CodeMirror.defineSimpleMode("substructural", {
     // Rules are matched in the order in which they appear, so there is
     // no ambiguity between this one and the one above
     {
-      regex: /(?:bool|int|if|else)\b/,
+      regex: /(?:bool|int|if|else|let|fix|in)\b/,
       token: "keyword",
     },
     { regex: /true|false/, token: "atom" },
