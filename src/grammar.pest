@@ -5,7 +5,7 @@
 // between every repetition (for example, * and +). We mark the WHITESPACE rule
 // silent with a leading low line (underscore) _{ ... }.
 WHITESPACE = _{ " " | "\t" | NEWLINE }
-COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+COMMENT = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ("//" ~ (!NEWLINE ~ ANY)*) }
 
 alpha = _{ "_" | ASCII_ALPHA }
 digit = _{ ASCII_DIGIT }
