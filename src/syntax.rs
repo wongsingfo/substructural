@@ -433,4 +433,14 @@ mod test {
         println!("{:#?}", output);
         println!("{:#?}", parse_program(input).unwrap());
     }
+
+    #[test]
+    fn test_comment() {
+        let input = "5 // comment\n";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        let input = "5 //comment";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        let input = "5 /* comment*/";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+    }
 }

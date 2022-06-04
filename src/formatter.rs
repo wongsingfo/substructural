@@ -43,6 +43,10 @@ impl TermFormatter {
         self.indent -= 1;
     }
 
+    fn line_limit(&self) -> usize {
+        self.line_width - self.indent * INDENT.len()
+    }
+
     fn write_indent(&mut self, i: usize) -> String {
         let mut s = String::new();
         for _ in 0..self.indent + i {
@@ -113,7 +117,7 @@ impl TermFormatter {
                 let s2 = self.write_termctx(t2, false);
                 let oneline = format!("{} ({})", s1, s2);
                 let result =
-                    if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_width {
+                    if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_limit() {
                         format!("{}\n{}({})", s1, self.write_indent(0), s2)
                     } else {
                         oneline
@@ -135,7 +139,7 @@ impl TermFormatter {
                 } else {
                     oneline
                 };
-                if s1.contains("\n") || oneline.len() > self.line_width {
+                if s1.contains("\n") || oneline.len() > self.line_limit() {
                     let result = format!(
                         "{}|{}{}|\n{}{}",
                         self.write_qualifer(q),
@@ -168,7 +172,7 @@ impl TermFormatter {
         }
     }
 
-    fn write_term_conditional(&mut self, t: &Term, need_bracket: bool) -> String {
+    fn write_term_conditional(&mut self, t: &Term, _need_bracket: bool) -> String {
         if let Term::Conditional(t1, t2, t3) = t {
             self.indent();
             let s1 = self.write_termctx(t1, false);
@@ -179,7 +183,7 @@ impl TermFormatter {
             if s1.contains("\n")
                 || s2.contains("\n")
                 || s3.contains("\n")
-                || oneline.len() > self.line_width
+                || oneline.len() > self.line_limit()
             {
                 format!(
                     "if {} {{\n{}{}\n{}}} else {{\n{}{}\n{}}}",
@@ -203,12 +207,12 @@ impl TermFormatter {
         if let Term::Let(v, t1, t2) = t {
             self.indent();
             let s1 = self.write_termctx(t1, false);
-            let s2 = self.write_termctx(t2, false);
             self.dedent();
+            let s2 = self.write_termctx(t2, false);
             let oneline = format!("let {} = {} in {}", v, s1, s2);
             let result =
-                if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_width {
-                    format!("let {} = {}\n{}in {}", v, s1, self.write_indent(0), s2,)
+                if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_limit() {
+                    format!("let {} = {} in\n{}{}", v, s1, self.write_indent(0), s2,)
                 } else {
                     oneline
                 };
