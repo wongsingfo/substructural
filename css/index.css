@@ -151,6 +151,9 @@ button {
   margin-bottom: var(--tip-bottom-margin);
 
   min-width: 10rem;
+  max-width: 20rem;
+  inline-size: max-content;
+
   padding: 0.3rem 0.4rem;
   border-radius: 0.5rem;
   background: var(--tip-color);
@@ -273,4 +276,22 @@ button {
 
 .btn:active {
   top: 2px;
+}
+
+.context {
+  margin-top: 0.5rem;
+}
+
+.context table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.context th,
+.context td {
+  padding: 0.1rem 0.5rem;
+}
+
+.context td {
+  border-top: 1px solid rgba(150, 150, 150, 10);
 }
