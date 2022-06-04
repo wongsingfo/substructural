@@ -88,6 +88,12 @@ fn subst_var(term_ctx: Box<TermCtx>, x: &str, x2: &str) -> Box<TermCtx> {
             subst_var(t2, x, x2),
             subst_var(t3, x, x2),
         ),
+        Term::Let(y, t1, t2) => Term::Let(
+            y.clone(),
+            subst_var(t1, x, x2),
+            if y == x { t2 } else { subst_var(t2, x, x2) },
+        ),
+        Term::Fix(t) => Term::Fix(subst_var(t, x, x2)),
         _ => term,
     };
     Box::new(TermCtx(ctx, term))
@@ -238,6 +244,31 @@ mod test {
         let store = Store::new_empty();
         let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
         let input = "let f = fix(|ff||x| if x {ff(false)} else {ff(true)}) in f(true)";
+        let term = parse_program(input).unwrap();
+        let mut result = TermEval { store, term };
+        for _ in 0..20 {
+            result = one_step_eval(result).unwrap();
+            println!(
+                "{:?} \n {}\n",
+                result.store,
+                formatter.format_termctx(&result.term)
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_min_file_handle() {
+        let store = Store::new_empty();
+        let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
+        let input = "
+        let open = |x| $true in
+        let read = |h| h in 
+        let close = |h| (if h {1} else {0}) in
+        let h = open(0) in 
+        let h = read(h) in 
+        let h = read(h) in 
+        close(h)
+        ";
         let term = parse_program(input).unwrap();
         let mut result = TermEval { store, term };
         for _ in 0..20 {
