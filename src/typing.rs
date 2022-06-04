@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::formatter::{TermFormatter, self};
+use crate::formatter::{self, TermFormatter};
 use crate::syntax::{Context, Pretype, Qualifier, Term, TermCtx, Type};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -105,6 +105,24 @@ fn type_check_aux(
                     *ty2
                 }
                 _ => return Err(err(format!("expect Function, given {:?}", fun_type))),
+            }
+        }
+        Term::Let(x, t1, t2) => {
+            let t1_type = type_check_aux(t1, type_ctx, type_map)?;
+            type_ctx.insert(x.clone(), t1_type);
+            type_check_aux(t2, type_ctx, type_map)?
+        }
+        Term::Fix(t) => {
+            let t_type = type_check_aux(t, type_ctx, type_map)?;
+            match t_type {
+                Type(q, Pretype::Function(ty1, ty2)) if *ty1 == *ty2 => {
+                    let Type(q1, _) = *ty1;
+                    if q == Qualifier::Linear || q1 == Qualifier::Linear {
+                        return Err(err(format!("linear term is not allowed for recursion")));
+                    }
+                    *ty1
+                }
+                _ => return Err(err(format!("expect Function with type T -> T"))),
             }
         }
         _ => return Err(err(format!("unknown term: {:?}", term))),

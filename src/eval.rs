@@ -115,6 +115,7 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
         Term::Conditional(t1, t2, t3) => match *t1 {
             TermCtx(_, Term::Variable(x)) => match extract(&x)? {
                 TermCtx(_, Term::Boolean(_, v)) => return Ok(if v { *t2 } else { *t3 }),
+                t1_ @ TermCtx(_, Term::Fix(..)) => Term::Conditional(Box::new(t1_), t2, t3),
                 _ => return Err(err(format!("Conditional term must be boolean"))),
             },
             _ => {
@@ -128,6 +129,7 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
                 TermCtx(_, Term::Abstraction(_, x, _, body)) => {
                     return Ok(*subst_var(body, &x, &x2))
                 }
+                t1_ @ TermCtx(_, Term::Fix(..)) => Term::Application(Box::new(t1_), t2),
                 _ => return Err(err(format!("Expect abstraction"))),
             },
             (TermCtx(_, Term::Variable(_)), _) => {
@@ -135,8 +137,33 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             }
             _ => Term::Application(Box::new(one_step_eval_aux(store, *t1)?), t2),
         },
-        Term::Fix(..) => unimplemented!(),
-        Term::Let(..) => unimplemented!(),
+        Term::Let(x, t1, t2) => match *t1 {
+            TermCtx(_, Term::Variable(y)) => return Ok(*subst_var(t2, &x, &y)),
+            _ => Term::Let(x, Box::new(one_step_eval_aux(store, *t1)?), t2),
+        },
+        Term::Fix(t) => match *t {
+            TermCtx(ctx1, Term::Abstraction(q, f, ty, body)) => match store.extract(&f) {
+                Some(_) => return Ok(*body),
+                None => {
+                    let new_f = store.fresh_variable("%f");
+                    let body_var = store.fresh_variable("%f");
+                    let body_ctx = body.0;
+                    let new_body = subst_var(body, &f, &new_f);
+                    store.bindings.insert(body_var.clone(), *new_body);
+                    let new_body = TermCtx(body_ctx, Term::Variable(body_var));
+                    let fix_term = TermCtx(
+                        ctx,
+                        Term::Fix(Box::new(TermCtx(
+                            ctx1,
+                            Term::Abstraction(q, new_f.clone(), ty, Box::new(new_body.clone())),
+                        ))),
+                    );
+                    store.bindings.insert(new_f, fix_term);
+                    return Ok(new_body);
+                }
+            },
+            _ => Term::Fix(Box::new(one_step_eval_aux(store, *t)?)),
+        },
     };
     Ok(TermCtx(ctx, term))
 }
@@ -153,7 +180,7 @@ pub(crate) fn one_step_eval(term_eval: TermEval) -> Result<TermEval, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::formatter::{TermFormatter, self};
+    use crate::formatter::{self, TermFormatter};
     use crate::syntax::parse_program;
 
     use super::*;
@@ -195,60 +222,31 @@ mod test {
         let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
         let input = "(|x| |y| x) (true) (false)";
         let term = parse_program(input).unwrap();
-        let result = TermEval { store, term };
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
-        let result = one_step_eval(result).unwrap();
-        println!(
-            "{:?} | {}",
-            result.store,
-            formatter.format_termctx(&result.term)
-        );
+        let mut result = TermEval { store, term };
+        for _ in 0..20 {
+            result = one_step_eval(result).unwrap();
+            println!(
+                "{:?} | {}",
+                result.store,
+                formatter.format_termctx(&result.term)
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_let_fix() {
+        let store = Store::new_empty();
+        let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
+        let input = "let f = fix(|ff||x| if x {ff(false)} else {ff(true)}) in f(true)";
+        let term = parse_program(input).unwrap();
+        let mut result = TermEval { store, term };
+        for _ in 0..20 {
+            result = one_step_eval(result).unwrap();
+            println!(
+                "{:?} \n {}\n",
+                result.store,
+                formatter.format_termctx(&result.term)
+            );
+        }
     }
 }
