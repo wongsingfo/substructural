@@ -33,11 +33,13 @@ pub enum Term {
     Variable(String),
     Boolean(Qualifier, bool),
     Integer(Qualifier, i64),
+    Compound(Qualifier, Box<TermCtx>, Box<TermCtx>),
     Abstraction(Qualifier, String, Option<Box<Type>>, Box<TermCtx>),
     Application(Box<TermCtx>, Box<TermCtx>),
     Conditional(Box<TermCtx>, Box<TermCtx>, Box<TermCtx>),
     Fix(Box<TermCtx>), // all recursive functions are unrestricted data structures
     Let(String, Box<TermCtx>, Box<TermCtx>),
+    Letc(String, String, Box<TermCtx>, Box<TermCtx>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
@@ -54,6 +56,7 @@ pub enum Pretype {
     Boolean,
     Integer,
     Function(Box<Type>, Box<Type>),
+    Compound(Box<Type>, Box<Type>),
 }
 
 pub fn parse_program(input: &str) -> Result<TermCtx, Error> {
@@ -135,6 +138,16 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
                     let value = string.parse::<i64>().unwrap();
                     Ok(TermCtx(source.into(), Term::Integer(qualifier, value)))
                 }
+                Rule::compound => {
+                    let inner = literal.into_inner();
+                    let (first, mut inner) = parse_pairs(inner)?;
+                    let comma = inner.next().unwrap();
+                    let (second, _) = parse_pairs(inner)?;
+                    Ok(TermCtx(
+                        comma.as_span().into(),
+                        Term::Compound(qualifier, Box::new(first), Box::new(second)),
+                    ))
+                }
                 _ => Err(Error::ParseError {
                     message: "unexpected literal".to_string(),
                     start: source.start(),
@@ -169,6 +182,7 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         Rule::abstraction => parse_pair_abstraction(pair),
         Rule::fix => parse_pair_fix(pair),
         Rule::letv => parse_pair_let(pair),
+        Rule::letc => parse_pair_letc(pair),
         _ => Err(Error::ParseError {
             message: format!("Unexpected rule: {:?}", pair.as_rule()),
             start: pair.as_span().start(),
@@ -235,7 +249,26 @@ fn parse_pair_let(pair: Pair<Rule>) -> Result<TermCtx, Error> {
     let _kw_in = inner.next().unwrap().as_span();
     let (t2, _) = parse_pairs(inner)?;
 
-    Ok(TermCtx(kw_let.into(), Term::Let(var, Box::new(t1), Box::new(t2))))
+    Ok(TermCtx(
+        kw_let.into(),
+        Term::Let(var, Box::new(t1), Box::new(t2)),
+    ))
+}
+
+fn parse_pair_letc(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let mut inner = pair.into_inner();
+    let kw_let = inner.next().unwrap().as_span();
+    let var1 = inner.next().unwrap().as_str().to_owned();
+    let _comma = inner.next().unwrap().as_span();
+    let var2 = inner.next().unwrap().as_str().to_owned();
+    let (t1, mut inner) = parse_pairs(inner)?;
+    let _kw_in = inner.next().unwrap().as_span();
+    let (t2, _) = parse_pairs(inner)?;
+
+    Ok(TermCtx(
+        kw_let.into(),
+        Term::Letc(var1, var2, Box::new(t1), Box::new(t2)),
+    ))
 }
 
 fn parse_typing(pair: Pair<Rule>) -> Result<Type, Error> {
@@ -256,7 +289,7 @@ fn parse_typing(pair: Pair<Rule>) -> Result<Type, Error> {
 fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
     if pair.as_rule() != Rule::typing0 {
         Err(Error::ParseError {
-            message: format!("Unexpected rule: {:?}", pair.as_rule()),
+            message: format!("Unexpected typing0 rule: {:?}", pair.as_rule()),
             start: pair.as_span().start(),
             end: pair.as_span().end(),
         })
@@ -275,9 +308,16 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
             Rule::kw_int => Type(Qualifier::Nop, Pretype::Integer),
             Rule::kw_bool => Type(Qualifier::Nop, Pretype::Boolean),
             Rule::typing => parse_typing(pair)?,
+            Rule::typing_compound => {
+                let mut inner = pair.into_inner();
+                let first = parse_typing(inner.next().unwrap())?;
+                let _comma = inner.next();
+                let second = parse_typing(inner.next().unwrap())?;
+                Type(Qualifier::Nop, Pretype::Compound(Box::new(first), Box::new(second)))
+            }
             _ => {
                 return Err(Error::ParseError {
-                    message: format!("Unexpected rule: {:?}", pair.as_rule()),
+                    message: format!("Unexpected typing0: {:?}", pair.as_rule()),
                     start: pair.as_span().start(),
                     end: pair.as_span().end(),
                 })
@@ -437,10 +477,34 @@ mod test {
     #[test]
     fn test_comment() {
         let input = "5 // comment\n";
-        let output = IdentParser::parse(Rule::program, input).unwrap();
+        let _output = IdentParser::parse(Rule::program, input).unwrap();
         let input = "5 //comment";
-        let output = IdentParser::parse(Rule::program, input).unwrap();
+        let _output = IdentParser::parse(Rule::program, input).unwrap();
         let input = "5 /* comment*/";
+        let _output = IdentParser::parse(Rule::program, input).unwrap();
+    }
+
+    #[test]
+    fn test_compound_value() {
+        let input = "$<p (1),q (2)> ";
         let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_compound_let() {
+        let input = "let <x,y >= 1 (2) in 3 (4)";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_compound_typing() {
+        let input = "|x : $<int->$bool, $bool> | 1";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
     }
 }

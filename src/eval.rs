@@ -118,6 +118,7 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             Term::Variable(var)
             // term
         }
+        Term::Compound(..) => unimplemented!(),
         Term::Conditional(t1, t2, t3) => match *t1 {
             TermCtx(_, Term::Variable(x)) => match extract(&x)? {
                 TermCtx(_, Term::Boolean(_, v)) => return Ok(if v { *t2 } else { *t3 }),
@@ -147,6 +148,7 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             TermCtx(_, Term::Variable(y)) => return Ok(*subst_var(t2, &x, &y)),
             _ => Term::Let(x, Box::new(one_step_eval_aux(store, *t1)?), t2),
         },
+        Term::Letc(x, y, t1, t2) => unimplemented!(),
         Term::Fix(t) => match *t {
             TermCtx(ctx1, Term::Abstraction(q, f, ty, body)) => match store.extract(&f) {
                 Some(_) => return Ok(*body),

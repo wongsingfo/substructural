@@ -14,9 +14,12 @@ identifier_continue = _{ alpha | digit }
 
 left_bracket  = _{ "(" }
 right_bracket = _{ ")" }
+left_arrow    = _{ "<" }
+right_arrow   = _{ ">" }
 left_curly    = _{ "{" }
 right_curly   = _{ "}" }
 semicolon     = _{ ":" }
+comma         = @{ "," }
 arrow         = _{ "->" }
 dollar        = _{ "$" }
 assign        = _{ "=" }
@@ -42,7 +45,7 @@ program = _{ SOI ~ term ~ EOI }
 
 // ============================= Term ============================= 
 
-term = _{ ( abstraction | literal | conditional | variable | bracket | fix | letv ) ~ application* }
+term = _{ ( abstraction | literal | conditional | variable | bracket | fix | letv | letc ) ~ application* }
 
 // Pest has two kinds of atomic rules: atomic (@) and compound atomic ($). Both
 // kinds of atomic rule prevent implicit whitespace. The difference between the
@@ -56,6 +59,8 @@ number = @{ (digit)+ ~!identifier_continue }
 
 boolean = @{ (kw_true | kw_false) ~ !identifier_continue }
 
+compound = { left_arrow ~ term ~ comma ~ term ~ right_arrow }
+
 conditional = { kw_if ~ term ~ left_curly ~ term ~ right_curly ~ kw_else ~ left_curly ~ term ~ right_curly }
 
 abstraction = { qualifier? ~ vertical_bar ~ variable ~ (semicolon ~ typing)? ~ vertical_bar ~ term }
@@ -67,7 +72,10 @@ fix = { kw_fix ~ term }
 // Use `letv` instead of `let` because the latter is a reserved keyword...
 letv = { kw_let ~ variable ~ assign ~ term ~ kw_in ~ term }
 
-literal = { qualifier? ~ (boolean | number) }
+// `let <x, y> = .. in ..`
+letc = { kw_let ~ left_arrow ~ variable ~ comma ~ variable ~ right_arrow ~ assign ~ term ~ kw_in ~ term }
+
+literal = { qualifier? ~ (boolean | number | compound) }
 
 bracket = { left_bracket ~ term ~ right_bracket }
 
@@ -77,4 +85,6 @@ qualifier = { dollar }
 
 typing = { typing0 ~ (arrow ~ typing0)* }
 
-typing0 = { qualifier? ~ (kw_int | kw_bool | (left_bracket ~ typing ~ right_bracket)) }
+typing0 = { qualifier? ~ (kw_int | kw_bool | typing_compound | (left_bracket ~ typing ~ right_bracket)) }
+
+typing_compound = { left_arrow ~ typing ~ comma ~ typing ~ right_arrow }

@@ -80,6 +80,13 @@ impl TermFormatter {
                     self.write_type(t2, false)
                 )
             }
+            Pretype::Compound(t1, t2) => {
+                format!(
+                    "<{}, {}>",
+                    self.write_type(t1, false),
+                    self.write_type(t2, false)
+                )
+            }
         };
         let q = self.write_qualifer(q);
         // TODO: refactor
@@ -106,22 +113,26 @@ impl TermFormatter {
             Term::Variable(v) => v.to_string(),
             Term::Boolean(q, b) => format!("{}{}", self.write_qualifer(q), b),
             Term::Integer(q, i) => format!("{}{}", self.write_qualifer(q), i),
+            Term::Compound(..) => self.write_term_compound(t, need_bracket),
             Term::Application(t1, t2) => {
                 let need_backet_on_s1 = match **t1 {
                     TermCtx(_, Term::Abstraction(..)) => true,
                     TermCtx(_, Term::Fix(..)) => true,
                     TermCtx(_, Term::Let(..)) => true,
+                    TermCtx(_, Term::Letc(..)) => true,
                     _ => false,
                 };
                 let s1 = self.write_termctx(t1, need_backet_on_s1);
                 let s2 = self.write_termctx(t2, false);
                 let oneline = format!("{} ({})", s1, s2);
-                let result =
-                    if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_limit() {
-                        format!("{}\n{}({})", s1, self.write_indent(0), s2)
-                    } else {
-                        oneline
-                    };
+                let result = if s1.contains("\n")
+                    || s2.contains("\n")
+                    || oneline.len() > self.line_limit()
+                {
+                    format!("{}\n{}({})", s1, self.write_indent(0), s2)
+                } else {
+                    oneline
+                };
                 result
             }
             Term::Conditional(..) => self.write_term_conditional(t, need_bracket),
@@ -169,6 +180,18 @@ impl TermFormatter {
                 result
             }
             Term::Let(..) => self.write_term_let(t, need_bracket),
+            Term::Letc(..) => self.write_term_letc(t, need_bracket),
+        }
+    }
+
+    fn write_term_compound(&mut self, t: &Term, _need_bracket: bool) -> String {
+        if let Term::Compound(q, t1, t2) = t {
+            let t1 = self.write_termctx(&**t1, false);
+            let t2 = self.write_termctx(&**t2, false);
+            format!("{}<{}, {}>", self.write_qualifer(q), t1, t2)
+            // TODO: insert new line if t1 + t2 is too long
+        } else {
+            unreachable!();
         }
     }
 
@@ -226,6 +249,37 @@ impl TermFormatter {
             unreachable!();
         }
     }
+
+    fn write_term_letc(&mut self, t: &Term, need_bracket: bool) -> String {
+        if let Term::Letc(v1, v2, t1, t2) = t {
+            self.indent();
+            let s1 = self.write_termctx(t1, false);
+            self.dedent();
+            let s2 = self.write_termctx(t2, false);
+            let oneline = format!("let <{}, {}> = {} in {}", v1, v2, s1, s2);
+            let result =
+                if s1.contains("\n") || s2.contains("\n") || oneline.len() > self.line_limit() {
+                    format!(
+                        "let <{}, {}> = {} in\n{}{}",
+                        v1,
+                        v2,
+                        s1,
+                        self.write_indent(0),
+                        s2,
+                    )
+                } else {
+                    oneline
+                };
+            let result = if need_bracket {
+                format!("({})", result)
+            } else {
+                result
+            };
+            result
+        } else {
+            unreachable!();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -252,6 +306,11 @@ mod test {
             "|x: $($int->bool)->int| x",
             "(fix 1) (2)",
             "(let x = 1 in true) (2)",
+            "|x: $<int, bool>| x",
+            "|x: $<int, bool>->int| x",
+            "|x: $(<int, bool>->int)| x",
+            "let <a, b> = 3 in 4",
+            "$<5, $6>",
         ];
         for p in prog.iter() {
             let result = format_termctx(&parse_program(p).unwrap());
