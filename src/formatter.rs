@@ -1,4 +1,4 @@
-use crate::syntax::{Pretype, Qualifier, Term, TermCtx, Type};
+use crate::syntax::{ArithOp, Pretype, Qualifier, Term, TermCtx, Type};
 
 /// The tab width is 4 spaces
 const INDENT: &str = "    ";
@@ -114,6 +114,9 @@ impl TermFormatter {
             Term::Boolean(q, b) => format!("{}{}", self.write_qualifer(q), b),
             Term::Integer(q, i) => format!("{}{}", self.write_qualifer(q), i),
             Term::Compound(..) => self.write_term_compound(t, need_bracket),
+            Term::Let(..) => self.write_term_let(t, need_bracket),
+            Term::Letc(..) => self.write_term_letc(t, need_bracket),
+            Term::Arith1(..) | Term::Arith2(..) => self.write_term_arith(t, need_bracket),
             Term::Application(t1, t2) => {
                 let need_backet_on_s1 = match **t1 {
                     TermCtx(_, Term::Abstraction(..)) => true,
@@ -179,8 +182,6 @@ impl TermFormatter {
                 };
                 result
             }
-            Term::Let(..) => self.write_term_let(t, need_bracket),
-            Term::Letc(..) => self.write_term_letc(t, need_bracket),
         }
     }
 
@@ -280,6 +281,23 @@ impl TermFormatter {
             unreachable!();
         }
     }
+
+    fn write_term_arith(&mut self, t: &Term, _need_bracket: bool) -> String {
+        match t {
+            Term::Arith2(q, ArithOp::Diff, t1, t2) => {
+                let t1 = self.write_termctx(&**t1, false);
+                let t2 = self.write_termctx(&**t2, false);
+                format!("{}diff({}, {})", self.write_qualifer(q), t1, t2)
+                // TODO: insert new line if the result is too long
+            }
+            Term::Arith1(q, ArithOp::IsZero, t1) => {
+                let t1 = self.write_termctx(&**t1, false);
+                format!("{}iszero({})", self.write_qualifer(q), t1)
+                // TODO: insert new line if the result is too long
+            }
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -311,6 +329,8 @@ mod test {
             "|x: $(<int, bool>->int)| x",
             "let <a, b> = 3 in 4",
             "$<5, $6>",
+            "$iszero(false)",
+            "diff(false, 1)",
         ];
         for p in prog.iter() {
             let result = format_termctx(&parse_program(p).unwrap());

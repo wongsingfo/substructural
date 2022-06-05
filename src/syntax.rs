@@ -29,11 +29,20 @@ impl fmt::Debug for TermCtx {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ArithOp {
+    Diff,
+    IsZero,
+    // TODO: add more primitive operations
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Term {
     Variable(String),
     Boolean(Qualifier, bool),
     Integer(Qualifier, i64),
     Compound(Qualifier, Box<TermCtx>, Box<TermCtx>),
+    Arith1(Qualifier, ArithOp, Box<TermCtx>),
+    Arith2(Qualifier, ArithOp, Box<TermCtx>, Box<TermCtx>),
     Abstraction(Qualifier, String, Option<Box<Type>>, Box<TermCtx>),
     Application(Box<TermCtx>, Box<TermCtx>),
     Conditional(Box<TermCtx>, Box<TermCtx>, Box<TermCtx>),
@@ -119,42 +128,7 @@ fn parse_pairs(mut pairs: Pairs<Rule>) -> Result<(TermCtx, Pairs<Rule>), Error> 
 
 fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
     let term1 = match pair.as_rule() {
-        Rule::literal => {
-            let source = pair.as_span();
-            let mut inner = pair.into_inner();
-            let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
-                parse_qualifier(inner.next().unwrap())
-            } else {
-                Qualifier::Nop
-            };
-            let literal = inner.next().unwrap();
-            let string = literal.as_str();
-            match literal.as_rule() {
-                Rule::boolean => {
-                    let value = string.parse::<bool>().unwrap();
-                    Ok(TermCtx(source.into(), Term::Boolean(qualifier, value)))
-                }
-                Rule::number => {
-                    let value = string.parse::<i64>().unwrap();
-                    Ok(TermCtx(source.into(), Term::Integer(qualifier, value)))
-                }
-                Rule::compound => {
-                    let inner = literal.into_inner();
-                    let (first, mut inner) = parse_pairs(inner)?;
-                    let comma = inner.next().unwrap();
-                    let (second, _) = parse_pairs(inner)?;
-                    Ok(TermCtx(
-                        comma.as_span().into(),
-                        Term::Compound(qualifier, Box::new(first), Box::new(second)),
-                    ))
-                }
-                _ => Err(Error::ParseError {
-                    message: "unexpected literal".to_string(),
-                    start: source.start(),
-                    end: source.end(),
-                }),
-            }
-        }
+        Rule::literal => parse_pair_literal(pair),
         Rule::variable => {
             let source = pair.as_span();
             let name = pair.as_str();
@@ -183,6 +157,8 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         Rule::fix => parse_pair_fix(pair),
         Rule::letv => parse_pair_let(pair),
         Rule::letc => parse_pair_letc(pair),
+        Rule::diff => parse_pair_diff(pair),
+        Rule::iszero => parse_pair_iszero(pair),
         _ => Err(Error::ParseError {
             message: format!("Unexpected rule: {:?}", pair.as_rule()),
             start: pair.as_span().start(),
@@ -190,6 +166,43 @@ fn parse_pair(pair: Pair<Rule>) -> Result<TermCtx, Error> {
         }),
     };
     term1
+}
+
+fn parse_pair_literal(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let source = pair.as_span();
+    let mut inner = pair.into_inner();
+    let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
+        parse_qualifier(inner.next().unwrap())
+    } else {
+        Qualifier::Nop
+    };
+    let literal = inner.next().unwrap();
+    let string = literal.as_str();
+    match literal.as_rule() {
+        Rule::boolean => {
+            let value = string.parse::<bool>().unwrap();
+            Ok(TermCtx(source.into(), Term::Boolean(qualifier, value)))
+        }
+        Rule::number => {
+            let value = string.parse::<i64>().unwrap();
+            Ok(TermCtx(source.into(), Term::Integer(qualifier, value)))
+        }
+        Rule::compound => {
+            let inner = literal.into_inner();
+            let (first, mut inner) = parse_pairs(inner)?;
+            let comma = inner.next().unwrap();
+            let (second, _) = parse_pairs(inner)?;
+            Ok(TermCtx(
+                comma.as_span().into(),
+                Term::Compound(qualifier, Box::new(first), Box::new(second)),
+            ))
+        }
+        _ => Err(Error::ParseError {
+            message: "unexpected literal".to_string(),
+            start: source.start(),
+            end: source.end(),
+        }),
+    }
 }
 
 fn parse_pair_abstraction(pair: Pair<Rule>) -> Result<TermCtx, Error> {
@@ -232,6 +245,40 @@ fn parse_pair_abstraction(pair: Pair<Rule>) -> Result<TermCtx, Error> {
             Term::Abstraction(qualifier, variable.to_string(), None, Box::new(term1)),
         ))
     }
+}
+
+fn parse_pair_diff(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let mut inner = pair.into_inner();
+    let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
+        let p = inner.next().unwrap();
+        parse_qualifier(p)
+    } else {
+        Qualifier::Nop
+    };
+    let kw = inner.next().unwrap();
+    let (t1, mut inner) = parse_pairs(inner)?;
+    let _comma = inner.next();
+    let (t2, _) = parse_pairs(inner)?;
+    Ok(TermCtx(
+        kw.as_span().into(),
+        Term::Arith2(qualifier, ArithOp::Diff, Box::new(t1), Box::new(t2)),
+    ))
+}
+
+fn parse_pair_iszero(pair: Pair<Rule>) -> Result<TermCtx, Error> {
+    let mut inner = pair.into_inner();
+    let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
+        let p = inner.next().unwrap();
+        parse_qualifier(p)
+    } else {
+        Qualifier::Nop
+    };
+    let kw = inner.next().unwrap();
+    let (t1, mut _inner) = parse_pairs(inner)?;
+    Ok(TermCtx(
+        kw.as_span().into(),
+        Term::Arith1(qualifier, ArithOp::IsZero, Box::new(t1)),
+    ))
 }
 
 fn parse_pair_fix(pair: Pair<Rule>) -> Result<TermCtx, Error> {
@@ -313,7 +360,10 @@ fn parse_typing0(pair: Pair<Rule>) -> Result<Type, Error> {
                 let first = parse_typing(inner.next().unwrap())?;
                 let _comma = inner.next();
                 let second = parse_typing(inner.next().unwrap())?;
-                Type(Qualifier::Nop, Pretype::Compound(Box::new(first), Box::new(second)))
+                Type(
+                    Qualifier::Nop,
+                    Pretype::Compound(Box::new(first), Box::new(second)),
+                )
             }
             _ => {
                 return Err(Error::ParseError {
@@ -503,6 +553,14 @@ mod test {
     #[test]
     fn test_compound_typing() {
         let input = "|x : $<int->$bool, $bool> | 1";
+        let output = IdentParser::parse(Rule::program, input).unwrap();
+        println!("{:#?}", output);
+        println!("{:#?}", parse_program(input).unwrap());
+    }
+
+    #[test]
+    fn test_arith() {
+        let input = "$diff(1, 2)";
         let output = IdentParser::parse(Rule::program, input).unwrap();
         println!("{:#?}", output);
         println!("{:#?}", parse_program(input).unwrap());

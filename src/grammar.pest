@@ -37,7 +37,9 @@ kw_let        = @{ "let" ~ !identifier_continue }
 // I am confused. Why we cannot use _{ .. } here? 
 // Answer: we need in as a seperator for term before and after it.
 kw_in         = @{ "in" ~ !identifier_continue } 
-keywords = { kw_if | kw_else | kw_bool | kw_int | kw_fix | kw_let | kw_in }
+kw_diff       = @{ "diff" ~ !identifier_continue } 
+kw_iszero     = @{ "iszero" ~ !identifier_continue } 
+keywords = { kw_if | kw_else | kw_bool | kw_int | kw_fix | kw_let | kw_in | kw_diff | kw_iszero }
 
 // SOI and EOI are two special rules that match, respectively, the start of
 // inputand the end of input.
@@ -45,7 +47,7 @@ program = _{ SOI ~ term ~ EOI }
 
 // ============================= Term ============================= 
 
-term = _{ ( abstraction | literal | conditional | variable | bracket | fix | letv | letc ) ~ application* }
+term = _{ ( abstraction | literal | conditional | variable | bracket | fix | letv | letc | diff | iszero) ~ application* }
 
 // Pest has two kinds of atomic rules: atomic (@) and compound atomic ($). Both
 // kinds of atomic rule prevent implicit whitespace. The difference between the
@@ -78,6 +80,10 @@ letc = { kw_let ~ left_arrow ~ variable ~ comma ~ variable ~ right_arrow ~ assig
 literal = { qualifier? ~ (boolean | number | compound) }
 
 bracket = { left_bracket ~ term ~ right_bracket }
+
+diff = { qualifier? ~ kw_diff ~ left_bracket ~ term ~ comma ~ term ~ right_bracket }
+
+iszero = { qualifier? ~ kw_iszero ~ left_bracket ~ term ~ right_bracket }
 
 // ============================= Typing ============================= 
 
