@@ -172,6 +172,8 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             },
             _ => Term::Fix(Box::new(one_step_eval_aux(store, *t)?)),
         },
+        Term::Arith1(..) => unimplemented!(),
+        Term::Arith2(..) => unimplemented!(),
     };
     Ok(TermCtx(ctx, term))
 }
