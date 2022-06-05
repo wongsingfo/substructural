@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::formatter::{self, TermFormatter};
-use crate::syntax::{Context, Pretype, Qualifier, Term, TermCtx, Type};
+use crate::syntax::{ArithOp, Context, Pretype, Qualifier, Term, TermCtx, Type};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -172,6 +172,20 @@ fn type_check_aux(
                     t2_type
                 }
                 _ => return Err(err("expect a compound type".to_string())),
+            }
+        }
+        Term::Arith1(q, ArithOp::IsZero, t) => match type_check_aux(t, type_ctx, type_map)? {
+            Type(_, Pretype::Integer) => Type(*q, Pretype::Boolean),
+            _ => return Err(err("expect a integer type".to_string())),
+        },
+        Term::Arith2(q, ArithOp::Diff, t1, t2) => {
+            let t1_type = type_check_aux(t1, type_ctx, type_map)?;
+            let t2_type = type_check_aux(t2, type_ctx, type_map)?;
+            match (t1_type, t2_type) {
+                (Type(_, Pretype::Integer), Type(_, Pretype::Integer)) => {
+                    Type(*q, Pretype::Integer)
+                }
+                _ => return Err(err("expect integer types".to_string())),
             }
         }
         _ => return Err(err(format!("unknown term: {:?}", term))),

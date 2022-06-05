@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::syntax::{Qualifier, Term, TermCtx};
+use crate::syntax::{ArithOp, Qualifier, Term, TermCtx};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -194,8 +194,33 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             },
             _ => Term::Fix(Box::new(one_step_eval_aux(store, *t)?)),
         },
-        Term::Arith1(..) => unimplemented!(),
-        Term::Arith2(..) => unimplemented!(),
+        Term::Arith1(q, op, t) => match &*t {
+            TermCtx(_, Term::Variable(x)) => match extract(&x)? {
+                TermCtx(_, Term::Integer(_, v1)) => match op {
+                    ArithOp::IsZero => Term::Boolean(q, v1 == 0),
+                    _ => return Err(err(format!("Unknown op {:?}", op))),
+                },
+                _ => return Err(err("Expect an Integer".to_string())),
+            },
+            _ => Term::Arith1(q, op, Box::new(one_step_eval_aux(store, *t)?)),
+        },
+        Term::Arith2(q, op, t1, t2) => match (&*t1, &*t2) {
+            (TermCtx(_, Term::Variable(x1)), TermCtx(_, Term::Variable(x2))) => {
+                match (extract(&x1)?, extract(&x2)?) {
+                    (TermCtx(_, Term::Integer(_, v1)), TermCtx(_, Term::Integer(_, v2))) => {
+                        match op {
+                            ArithOp::Diff => Term::Integer(q, v1 - v2),
+                            _ => return Err(err(format!("Unknown op {:?}", op))),
+                        }
+                    }
+                    _ => return Err(err(format!("Expect Integers"))),
+                }
+            }
+            (TermCtx(_, Term::Variable(..)), _) => {
+                Term::Arith2(q, op, t1, Box::new(one_step_eval_aux(store, *t2)?))
+            }
+            _ => Term::Arith2(q, op, Box::new(one_step_eval_aux(store, *t1)?), t2),
+        },
     };
     Ok(TermCtx(ctx, term))
 }
