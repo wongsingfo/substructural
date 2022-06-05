@@ -89,10 +89,7 @@ fn type_check_aux(
                     "free linear variable is refered in unrestricted function body".to_string(),
                 ));
             }
-            Type(
-                q.clone(),
-                Pretype::Function(ty.clone(), Box::new(body_type)),
-            )
+            Type(*q, Pretype::Function(ty.clone(), Box::new(body_type)))
         }
         Term::Application(fun, arg) => {
             let fun_type = type_check_aux(fun, type_ctx, type_map)?;
@@ -109,8 +106,17 @@ fn type_check_aux(
         }
         Term::Let(x, t1, t2) => {
             let t1_type = type_check_aux(t1, type_ctx, type_map)?;
+            let q = t1_type.0;
             type_ctx.insert(x.clone(), t1_type);
-            type_check_aux(t2, type_ctx, type_map)?
+            let t2_type = type_check_aux(t2, type_ctx, type_map)?;
+            if q == Qualifier::Linear && type_ctx.contains_key(x) {
+                return Err(err(format!(
+                    "linear variable {} is not consumed in let body",
+                    x
+                )));
+            }
+            type_ctx.remove(x);
+            t2_type
         }
         Term::Fix(t) => {
             let t_type = type_check_aux(t, type_ctx, type_map)?;
@@ -123,6 +129,49 @@ fn type_check_aux(
                     *ty1
                 }
                 _ => return Err(err(format!("expect Function with type T -> T"))),
+            }
+        }
+        Term::Compound(q, t1, t2) => {
+            let type_ctx0 = type_ctx.clone();
+            let t1_type = type_check_aux(t1, type_ctx, type_map)?;
+            if *q == Qualifier::Nop && !type_ctx_eq(type_ctx, &type_ctx0) {
+                return Err(err(
+                    "free linear variable is refered in unrestricted compound pair".to_string(),
+                ));
+            }
+            let type_ctx0 = type_ctx.clone();
+            let t2_type = type_check_aux(t2, type_ctx, type_map)?;
+            if *q == Qualifier::Nop && !type_ctx_eq(type_ctx, &type_ctx0) {
+                return Err(err(
+                    "free linear variable is refered in unrestricted compound pair".to_string(),
+                ));
+            }
+            Type(*q, Pretype::Compound(Box::new(t1_type), Box::new(t2_type)))
+        }
+        Term::Letc(x1, x2, t1, t2) => {
+            if x1 == x2 {
+                return Err(err(format!("expect different identifier, given {}", x1)));
+            }
+            let t1_type = type_check_aux(t1, type_ctx, type_map)?;
+            match t1_type {
+                Type(_, Pretype::Compound(ty1, ty2)) => {
+                    let (q1, q2) = (ty1.0, ty2.0);
+                    type_ctx.insert(x1.clone(), *ty1);
+                    type_ctx.insert(x2.clone(), *ty2);
+                    let t2_type = type_check_aux(t2, type_ctx, type_map)?;
+                    for (q, x) in [(q1, x1), (q2, x2)] {
+                        if q == Qualifier::Linear && type_ctx.contains_key(x) {
+                            return Err(err(format!(
+                                "linear variable {} is not consumed in let body",
+                                x
+                            )));
+                        }
+                    }
+                    type_ctx.remove(x1);
+                    type_ctx.remove(x2);
+                    t2_type
+                }
+                _ => return Err(err("expect a compound type".to_string())),
             }
         }
         _ => return Err(err(format!("unknown term: {:?}", term))),

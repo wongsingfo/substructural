@@ -110,15 +110,26 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             .ok_or_else(|| err(format!("Variable {} not found", x)))
     };
     let TermCtx(ctx, term) = term_ctx;
+    let dup_term = term.clone();
     let term = match term {
         Term::Variable(x) => extract(&x)?.1,
-        Term::Boolean(_, _) | Term::Integer(_, _) | Term::Abstraction(_, _, _, _) => {
+        Term::Boolean(..) | Term::Integer(..) | Term::Abstraction(..) => {
             let var = store.fresh_variable("%x");
             store.push(var.clone(), TermCtx(ctx, term));
             Term::Variable(var)
             // term
         }
-        Term::Compound(..) => unimplemented!(),
+        Term::Compound(q, t1, t2) => match (&*t1, &*t2) {
+            (TermCtx(_, Term::Variable(..)), TermCtx(_, Term::Variable(..))) => {
+                let var = store.fresh_variable("%x");
+                store.push(var.clone(), TermCtx(ctx, dup_term));
+                Term::Variable(var)
+            }
+            (TermCtx(_, Term::Variable(..)), _) => {
+                Term::Compound(q, t1, Box::new(one_step_eval_aux(store, *t2)?))
+            }
+            _ => Term::Compound(q, Box::new(one_step_eval_aux(store, *t1)?), t2),
+        },
         Term::Conditional(t1, t2, t3) => match *t1 {
             TermCtx(_, Term::Variable(x)) => match extract(&x)? {
                 TermCtx(_, Term::Boolean(_, v)) => return Ok(if v { *t2 } else { *t3 }),
@@ -148,7 +159,18 @@ fn one_step_eval_aux(store: &mut Store, term_ctx: TermCtx) -> Result<TermCtx, Er
             TermCtx(_, Term::Variable(y)) => return Ok(*subst_var(t2, &x, &y)),
             _ => Term::Let(x, Box::new(one_step_eval_aux(store, *t1)?), t2),
         },
-        Term::Letc(x, y, t1, t2) => unimplemented!(),
+        Term::Letc(x1, x2, term, body) => match &*term {
+            TermCtx(_, Term::Variable(x)) => match extract(&x)? {
+                TermCtx(_, Term::Compound(_, y1, y2)) => match (&*y1, &*y2) {
+                    (TermCtx(_, Term::Variable(y1)), TermCtx(_, Term::Variable(y2))) => {
+                        return Ok(*subst_var(subst_var(body, &x1, &y1), &x2, &y2))
+                    }
+                    _ => return Err(err(format!("..."))),
+                },
+                _ => return Err(err(format!("Expect compound"))),
+            },
+            _ => Term::Letc(x1, x2, Box::new(one_step_eval_aux(store, *term)?), body),
+        },
         Term::Fix(t) => match *t {
             TermCtx(ctx1, Term::Abstraction(q, f, ty, body)) => match store.extract(&f) {
                 Some(_) => return Ok(*body),
