@@ -97,7 +97,10 @@ fn type_check_aux(
             match fun_type {
                 Type(_, Pretype::Function(ty1, ty2)) => {
                     if *ty1 != arg_type {
-                        return Err(err(format!("expected {:?}, given {:?}", ty1, arg_type)));
+                        return Err(err(format!(
+                            "expect {:?} as argument, given {:?}",
+                            ty1, arg_type
+                        )));
                     }
                     *ty2
                 }
@@ -128,7 +131,12 @@ fn type_check_aux(
                     }
                     *ty1
                 }
-                _ => return Err(err(format!("expect Function with type T -> T"))),
+                _ => {
+                    return Err(err(format!(
+                        "expect Function T -> T, given {:?}",
+                        t_type
+                    )))
+                }
             }
         }
         Term::Compound(q, t1, t2) => {
@@ -171,12 +179,12 @@ fn type_check_aux(
                     type_ctx.remove(x2);
                     t2_type
                 }
-                _ => return Err(err("expect a compound type".to_string())),
+                _ => return Err(err(format!("expect Compound, given {:?}", t1_type))),
             }
         }
         Term::Arith1(q, ArithOp::IsZero, t) => match type_check_aux(t, type_ctx, type_map)? {
             Type(_, Pretype::Integer) => Type(*q, Pretype::Boolean),
-            _ => return Err(err("expect a integer type".to_string())),
+            ty => return Err(err(format!("expect Integer, given {:?}", ty))),
         },
         Term::Arith2(q, ArithOp::Diff, t1, t2) => {
             let t1_type = type_check_aux(t1, type_ctx, type_map)?;
@@ -185,10 +193,15 @@ fn type_check_aux(
                 (Type(_, Pretype::Integer), Type(_, Pretype::Integer)) => {
                     Type(*q, Pretype::Integer)
                 }
-                _ => return Err(err("expect integer types".to_string())),
+                (ty1, ty2) => {
+                    return Err(err(format!(
+                        "expect Integers, given {:?} and {:?}",
+                        ty1, ty2
+                    )))
+                }
             }
         }
-        _ => return Err(err(format!("unknown term: {:?}", term))),
+        _ => return Err(err(format!("unknown term {:?}", term))),
     };
     if need_type_tip {
         type_map.insert(*span, type_.clone());
