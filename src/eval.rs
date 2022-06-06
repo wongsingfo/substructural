@@ -94,6 +94,21 @@ fn subst_var(term_ctx: Box<TermCtx>, x: &str, x2: &str) -> Box<TermCtx> {
             if y == x { t2 } else { subst_var(t2, x, x2) },
         ),
         Term::Fix(t) => Term::Fix(subst_var(t, x, x2)),
+        Term::Letc(y1, y2, t1, t2) => Term::Letc(
+            y1.clone(),
+            y2.clone(),
+            subst_var(t1, x, x2),
+            if y1 == x || y2 == x {
+                t2
+            } else {
+                subst_var(t2, x, x2)
+            },
+        ),
+        Term::Compound(q, t1, t2) => Term::Compound(q, subst_var(t1, x, x2), subst_var(t2, x, x2)),
+        Term::Arith1(q, op, t) => Term::Arith1(q, op, subst_var(t, x, x2)),
+        Term::Arith2(q, op, t1, t2) => {
+            Term::Arith2(q, op, subst_var(t1, x, x2), subst_var(t2, x, x2))
+        }
         _ => term,
     };
     Box::new(TermCtx(ctx, term))
@@ -320,6 +335,23 @@ mod test {
         let h = read(h) in 
         close(h)
         ";
+        let term = parse_program(input).unwrap();
+        let mut result = TermEval { store, term };
+        for _ in 0..20 {
+            result = one_step_eval(result).unwrap();
+            println!(
+                "{:?} \n {}\n",
+                result.store,
+                formatter.format_termctx(&result.term)
+            );
+        }
+    }
+
+    #[test]
+    fn test_eval_diff() {
+        let store = Store::new_empty();
+        let mut formatter = TermFormatter::new(formatter::DEFAULT_LINE_WIDTH);
+        let input = "let negate = |x| $diff($0, x) in negate($5)";
         let term = parse_program(input).unwrap();
         let mut result = TermEval { store, term };
         for _ in 0..20 {
