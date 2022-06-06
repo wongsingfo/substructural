@@ -1,0 +1,7 @@
+($|http_request: $bool| 
+  ($|request_handler: $(int->$bool)|
+    /* Use linear type to ensure the handler is invoked correctly */
+    request_handler (200)
+  ) 
+  ($|response: int| http_request)) 
+($true)

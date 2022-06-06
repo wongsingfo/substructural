@@ -249,8 +249,10 @@ fn parse_pair_abstraction(pair: Pair<Rule>) -> Result<TermCtx, Error> {
 
 fn parse_pair_diff(pair: Pair<Rule>) -> Result<TermCtx, Error> {
     let mut inner = pair.into_inner();
+    let mut qualifier_ctx: Option<Span> = None;
     let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
         let p = inner.next().unwrap();
+        qualifier_ctx = Some(p.as_span());
         parse_qualifier(p)
     } else {
         Qualifier::Nop
@@ -259,24 +261,34 @@ fn parse_pair_diff(pair: Pair<Rule>) -> Result<TermCtx, Error> {
     let (t1, mut inner) = parse_pairs(inner)?;
     let _comma = inner.next();
     let (t2, _) = parse_pairs(inner)?;
+    let kw = kw.as_span();
+    let start = qualifier_ctx.map_or(kw.start(), |x| x.start());
+    let end = kw.end();
+    let source = Context { start, end };
     Ok(TermCtx(
-        kw.as_span().into(),
+        source,
         Term::Arith2(qualifier, ArithOp::Diff, Box::new(t1), Box::new(t2)),
     ))
 }
 
 fn parse_pair_iszero(pair: Pair<Rule>) -> Result<TermCtx, Error> {
     let mut inner = pair.into_inner();
+    let mut qualifier_ctx: Option<Span> = None;
     let qualifier = if let Rule::qualifier = inner.peek().unwrap().as_rule() {
         let p = inner.next().unwrap();
+        qualifier_ctx = Some(p.as_span());
         parse_qualifier(p)
     } else {
         Qualifier::Nop
     };
     let kw = inner.next().unwrap();
     let (t1, mut _inner) = parse_pairs(inner)?;
+    let kw = kw.as_span();
+    let start = qualifier_ctx.map_or(kw.start(), |x| x.start());
+    let end = kw.end();
+    let source = Context { start, end };
     Ok(TermCtx(
-        kw.as_span().into(),
+        source,
         Term::Arith1(qualifier, ArithOp::IsZero, Box::new(t1)),
     ))
 }
