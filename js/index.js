@@ -77,6 +77,7 @@ function Substructural() {
   let lib = window.substructural;
   let log_error = console.log;
   let editor = null;
+  let examples_code = [];
 
   function init_me() {
     lib.init().then(() => {
@@ -153,9 +154,32 @@ function Substructural() {
       this.input_code = code;
       this.onInputChanged();
     });
+
+    init_examples.call(this);
+    
     let code = editor.getValue();
     this.input_code = code;
     this.onInputChanged();
+  }
+
+  function init_examples() {
+    fetch('examples/manifest.json')
+    .then(response => response.text())
+    .then(text => {
+      let json = JSON.parse(text);
+      let names = json.map(obj => obj.name);
+      this.examples = names;
+
+      json.forEach((obj, i) => {
+        let url = obj.url;
+        fetch(url)
+        .then(res => res.text())
+        .then(text => {
+          examples_code[i] = text;
+          console.log(text)
+        })
+      });
+    });
   }
 
   let eval_term1;
@@ -216,6 +240,10 @@ function Substructural() {
     oneStep.call(this, JSON.stringify(eval_term1));
   }
 
+  function onReset() {
+    onInputChanged.call(this);
+  }
+
   function updateTypingOutput(json0) {
     let json = parseJSON(json0);
     console.log(json);
@@ -239,6 +267,11 @@ function Substructural() {
 
   function onEvalution() {}
 
+  function onLoadExample(i) {
+    let code = examples_code[i];
+    editor.setValue(code);
+  }
+
   return {
     initialized: false,
     init_me,
@@ -251,10 +284,15 @@ function Substructural() {
     onFormatCode,
     onEvalution,
     onOneStepEval,
+    onReset,
+    onLoadExample,
 
     eval0: "",
     eval1: "",
     ctx0: [],
     ctx1: [],
+
+// examples: [],
+    examples: ["hello world", "fib"],
   };
 }

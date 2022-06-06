@@ -9,7 +9,7 @@ class cursors {
     this.moveIng = false;
     this.fadeIng = false;
     this.attention =
-      "a,input,button,.typing-tip,.eval-arrow";
+      "a,input,button,.typing-tip,.eval-arrow,.example-tag";
     this.effecter.transform = "translate(-50%, -50%) scale(0)";
     this.effecter.opacity = "1";
     window.addEventListener("mousemove", (mouse) => this.reset(mouse), {
