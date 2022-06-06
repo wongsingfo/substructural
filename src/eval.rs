@@ -51,12 +51,20 @@ impl From<TermCtx> for TermEval {
     }
 }
 
+fn is_var(term: &TermCtx) -> bool {
+    match term {
+        TermCtx(_, Term::Variable(..)) => true,
+        _ => false,
+    }
+}
+
 fn is_value(term: &TermCtx) -> bool {
     let TermCtx(_, term) = term;
     match term {
-        Term::Boolean(_, _) => true,
-        Term::Integer(_, _) => true,
-        Term::Abstraction(_, _, _, _) => true,
+        Term::Boolean(..) => true,
+        Term::Integer(..) => true,
+        Term::Abstraction(..) => true,
+        Term::Compound(_, ref t1, ref t2) if is_var(t1) && is_var(t2) => true,
         _ => false,
     }
 }
@@ -64,9 +72,10 @@ fn is_value(term: &TermCtx) -> bool {
 fn get_qualifier(term: &TermCtx) -> Option<Qualifier> {
     let TermCtx(_, term) = term;
     let q = match term {
-        Term::Boolean(q, _) => q,
-        Term::Integer(q, _) => q,
-        Term::Abstraction(q, _, _, _) => q,
+        Term::Boolean(q, ..) => q,
+        Term::Integer(q, ..) => q,
+        Term::Abstraction(q, ..) => q,
+        Term::Compound(q, ..) => q,
         _ => return None,
     };
     Some(*q)

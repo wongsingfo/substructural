@@ -100,6 +100,7 @@ impl PartialEq for Pretype {
             (Pretype::Boolean, Pretype::Boolean) => true,
             (Pretype::Integer, Pretype::Integer) => true,
             (Pretype::Function(a1, b1), Pretype::Function(a2, b2)) => a1 == a2 && b1 == b2,
+            (Pretype::Compound(a1, b1), Pretype::Compound(a2, b2)) => a1 == a2 && b1 == b2,
             _ => false,
         }
     }
