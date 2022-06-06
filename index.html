@@ -18,11 +18,21 @@
 
     <div class="container-main" x-data="Substructural()" x-init="init_me">
       <div class="banner">
-        <h1>Substructural Type System</h1>
-        <p x-show="!initialized">WASM Loading ...</p>
+        <h1>Flexiable Linear Type System</h1>
+        <p x-show="!initialized">WASM is loading, please wait ...</p>
+        <p>
+          Click to load the example codes:
+          <template x-for="(t, i) in examples">
+            <span>
+              <span class="example-tag" x-text="t" @click="onLoadExample(i)"></span>
+              <!-- empty line for spaces between `t`s -->
+            </span>
+          </template>
+        </p>
       </div>
       <div class="editor">
-        <textarea id="source-code">( (|x: $bool| $|y: bool| x) ($true) (false) )</textarea>
+        <h2>Editor</h2>
+        <textarea id="source-code"></textarea>
       </div>
       <div class="control" x-show="false">
         <button class="btn">Format Code</button>
@@ -30,14 +40,19 @@
         <button class="btn" @click="onOneStepEval">One-step Eval.</button>
       </div>
       <div class="eval">
+        <h2 style="grid-area: ty-head">Typing</h2>
         <p
           class="typing-container mono"
           style="grid-area: typing"
           x-html="typing_output"
         ></p>
+        <h2 style="grid-area: eval-head">Evaluation</h2>
         <div class="code-container mono" style="grid-area: eval0" x-text="eval0"></div>
         <div class="code-container mono" style="grid-area: eval1" x-text="eval1"></div>
-        <button class="eval-arrow" style="grid-area: arrow" @click="onOneStepEval">&#8594</button>
+        <div style="grid-area: arrow">
+          <button class="eval-arrow jump-animate" @click="onOneStepEval">&#8594;</button>
+          <button class="eval-arrow" @click="onReset">&#8634;</button>
+        </div>
         <div class="context mono" style="grid-area: ctx0" >
           <table>
             <tr>

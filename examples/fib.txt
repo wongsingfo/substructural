@@ -1,0 +1,11 @@
+let negate = |x: int| diff(0, x) in
+let add = |x: int| |y: int| diff(x, negate(y)) in
+let times = fix |f: int->$(int->int)| |x: int| $|y: int| 
+  if $iszero(x) { 0 } 
+  else {
+    add(f(diff(x, 1))(y))(y) 
+  } in
+let fact = fix |f: int->int| |x: int|
+  if $iszero(x) { 1 }
+  else { times ( f( diff(x, 1) ) ) ( x ) }
+in fact(3)
