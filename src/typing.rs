@@ -131,12 +131,7 @@ fn type_check_aux(
                     }
                     *ty1
                 }
-                _ => {
-                    return Err(err(format!(
-                        "expect Function T -> T, given {:?}",
-                        t_type
-                    )))
-                }
+                _ => return Err(err(format!("expect Function T -> T, given {:?}", t_type))),
             }
         }
         Term::Compound(q, t1, t2) => {
@@ -212,7 +207,14 @@ fn type_check_aux(
 pub fn type_check(term_ctx: &TermCtx) -> Result<HashMap<Context, Type>, Error> {
     let mut type_map = HashMap::<Context, Type>::new();
     let mut type_ctx = HashMap::<String, Type>::new();
-    type_check_aux(term_ctx, &mut type_ctx, &mut type_map)?;
+    let res_type = type_check_aux(term_ctx, &mut type_ctx, &mut type_map)?;
+    if res_type.0 == Qualifier::Linear {
+        return Err(Error::TypeError {
+            start: term_ctx.0.start,
+            end: term_ctx.0.end,
+            message: format!("The term is linear type, will not consumed after evaluation"),
+        });
+    }
     Ok(type_map)
 }
 
@@ -355,5 +357,26 @@ mod tests {
         let vec = convert_hashmap_to_vec(&type_map, &input);
         println!("{:#?}", type_map);
         println!("{:#?}", vec);
+    }
+
+    #[test]
+    fn test_top_term_linearity() {
+        let input = "
+            let request_body = $114514 in
+            let resource_available = 
+            |x: $int| $iszero(x) in
+            let http_server = 
+            $|http_request: $int|
+                let request_handler =
+                $|result: $int| $<$200, result> in
+                if resource_available (http_request) {
+                request_handler ($42)
+                } else {
+                request_handler ($66)
+                } in
+            http_server (request_body)
+        ";
+        let term = parse_program(input).unwrap();
+        assert_eq!(type_check(&term).is_err(), true);
     }
 }
