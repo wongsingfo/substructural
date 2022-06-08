@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_type_atom() {
-        let input = "$true";
+        let input = "true";
         let term = parse_program(input).unwrap();
         let type_map = type_check(&term).unwrap();
         println!("{:?}", type_map);
