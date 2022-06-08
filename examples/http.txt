@@ -4,7 +4,7 @@ let resource_available =
 let http_server = 
   $|http_request: $int|
 	let request_handler =
-	  $|result: $int| $<$200, result> in
+	  $|result: $int| <200, diff(result, 0)> in
     if resource_available (http_request) {
       request_handler ($42)
     } else {
