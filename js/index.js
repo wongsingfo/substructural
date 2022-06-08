@@ -250,10 +250,11 @@ function Substructural() {
     let result = json
       .map((span) => {
         let { ty, s } = span;
+        s = s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
         if (s === "\n") {
           s = "<br/>";
         } else if (ty) {
-          // TODO: esacpe quote in `ty`
           s = `<span class="typing-tip" data-text="${ty}">${s}</span>`;
         }
         return s;
@@ -292,7 +293,6 @@ function Substructural() {
     ctx0: [],
     ctx1: [],
 
-// examples: [],
-    examples: ["hello world", "fib"],
+    examples: [],
   };
 }

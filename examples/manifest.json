@@ -4,7 +4,27 @@
 		"url": "examples/fib.txt"
 	},
 	{
-		"name": "http (normal)",
+		"name": "http",
 		"url": "examples/http.txt"
+	},
+	{
+		"name": "http_error1",
+		"url": "examples/http_error1.txt"
+	},
+	{
+		"name": "http_error2",
+		"url": "examples/http_error2.txt"
+	},
+	{
+		"name": "I/O",
+		"url": "examples/io.txt"
+	},
+	{
+		"name": "I/O_error1",
+		"url": "examples/io_error1.txt"
+	},
+	{
+		"name": "I/O_error2",
+		"url": "examples/io_error2.txt"
 	}
 ]

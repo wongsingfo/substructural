@@ -1,0 +1,9 @@
+let open = |dummy: int| $0 in
+let read = |handle: $int| $<handle, 123> in
+let write = |handle: $int| $|msg: int| handle in
+let close = |handle: $int| diff(0, handle) in
+let h = open(0) in
+let <h, msg> = read(h) in
+let h = write(h)(msg) in
+close(h)
+
