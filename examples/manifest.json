@@ -26,5 +26,9 @@
 	{
 		"name": "I/O_error2",
 		"url": "examples/io_error2.txt"
+	},
+	{
+		"name": "I/O_error3",
+		"url": "examples/io_error3.txt"
 	}
 ]
