@@ -6,7 +6,9 @@ let http_server =
 	let request_handler =
 	  $|result: $int| $<$200, result> in
     if resource_available (http_request) {
-      request_handler ($42)
+      /* the `request_handler` is called twice */
+      let _ = request_handler ($42) in 
+      request_handler ($43)
     } else {
       request_handler ($66)
     } in

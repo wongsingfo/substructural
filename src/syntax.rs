@@ -118,8 +118,14 @@ fn parse_pairs(mut pairs: Pairs<Rule>) -> Result<(TermCtx, Pairs<Rule>), Error> 
 
         let TermCtx(Context { start, .. }, _) = term1;
         let TermCtx(Context { end, .. }, _) = term2;
+        
+        // option 1: i think it can be hard to read
+        let _context = Context { start, end };
+
+        // option 2:
+        let context = term2.0;
         term1 = TermCtx(
-            Context { start, end },
+            context,
             Term::Application(Box::new(term1), Box::new(term2)),
         )
     }

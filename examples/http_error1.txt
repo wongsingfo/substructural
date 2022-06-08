@@ -6,7 +6,7 @@ let http_server =
 	let request_handler =
 	  $|result: $int| $<$200, result> in
     if resource_available (http_request) {
-      request_handler ($42)
+      201  // forget to call the `http_request`
     } else {
       request_handler ($66)
     } in
