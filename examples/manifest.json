@@ -1,7 +1,7 @@
 [
 	{
-		"name": "fib",
-		"url": "examples/fib.txt"
+		"name": "fact",
+		"url": "examples/fact.txt"
 	},
 	{
 		"name": "http",
