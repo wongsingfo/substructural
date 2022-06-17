@@ -1,4 +1,4 @@
-# Flexiable Linear Type System
+# Flexible Linear Type System
 
 ![Build](https://github.com/wongsingfo/substructural/workflows/release/badge.svg)
 
